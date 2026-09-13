@@ -101,7 +101,6 @@ project_iq/
 ├── web/
 │   └── app.py                     # WCAG 2.1 AA compliant 8-module Streamlit dashboard
 ├── scripts/
-│   ├── generate_sample_data.py    # Synthetic college document generator for testing
 │   ├── run_all_tests.py           # Master automated test execution runner
 │   └── package_project.py         # Production distribution zip packager
 ├── tests/
@@ -255,22 +254,6 @@ The user interface in `web/app.py` has been audited and built in accordance with
 - **Focus Rings:** Custom high-visibility `:focus-visible` styling (`3px solid #2563eb` with `2px` offset) for keyboard-only navigation.
 - **Multi-Modal Signaling:** Information is never conveyed by color alone; statuses combine distinct textual badges (`[APPROVED]`, `[HIGH RISK]`, `[REVISION NEEDED]`), icons, and colors.
 - **Screen Reader Utilities:** Semantic HTML landmarks, `.sr-only` accessibility classes, and ARIA attributes (`aria-label`, `aria-live="polite"`).
-
----
-
-## 📜 Citation & Academic Reference
-
-If you utilize Project-IQ in your research, academic thesis, or institutional benchmarking, please cite the underlying architecture:
-
-```bibtex
-@inproceedings{project_iq_2026,
-  title     = {Project-IQ: Academic Project Intelligence Platform with Structure-Aware RAG and Explainable Rubric Evaluation},
-  author    = {Academic Intelligence Research Team},
-  booktitle = {Proceedings of the International Conference on Educational Data Mining and AI in Higher Education (EDM/AI-HE)},
-  series    = {Springer Lecture Notes in Computer Science},
-  year      = {2026}
-}
-```
 
 ---
 
