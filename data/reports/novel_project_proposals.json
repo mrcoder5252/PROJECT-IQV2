@@ -1,0 +1,69 @@
+[
+  {
+    "title": "Next-Gen Adaptive Artificial Intelligence & Edge Systems: Real-Time Edge-Optimized Multi-Modal Framework",
+    "domain": "Artificial Intelligence & Edge Systems",
+    "problem_statement": "Past final-year student implementations suffered from high latency, reliance on static datasets, and lack of real-time edge deployment capabilities.",
+    "past_project_citations": [
+      {
+        "source_file": "BLACK_BOOK_REPORT.docx",
+        "identified_gap": "Identified limitation in FUTURE SCOPE: 8.2 Future Scope The future of this system holds vast potential for innovation and expansion. With rapid advancements in..."
+      },
+      {
+        "source_file": "Group 2 Synopsis (1).docx",
+        "identified_gap": "Identified limitation in FUTURE SCOPE: Future Scope Integration with real quantum hardware. Extension to multimodal biometrics (face, iris). Incorporation of p..."
+      },
+      {
+        "source_file": "SUPER DUPER FINAL REPORT OF VR.pdf",
+        "identified_gap": "Identified limitation in FUTURE SCOPE: 8.2 Future Scope \nThe Virtual Reality–based Cybercrime Investigation Lab has immense potential for \nexpansion and real-w..."
+      }
+    ],
+    "core_innovation": "Integrates lightweight quantized neural architectures (ONNX/TensorRT) with asynchronous event-driven streaming to enable sub-50ms inference on commodity edge hardware.",
+    "proposed_methodology": "1. Multi-modal data ingestion and normalization. 2. Edge model quantization and knowledge distillation. 3. Zero-shot anomaly detection with fallback alerts. 4. Interactive telemetry monitoring dashboard.",
+    "tech_stack": [
+      "Python",
+      "FastAPI",
+      "PyTorch / ONNX Runtime",
+      "ChromaDB",
+      "Streamlit",
+      "Docker"
+    ],
+    "feasibility_score": 9,
+    "expected_deliverables": [
+      "Lightweight Edge-Ready Model Pipeline",
+      "Real-Time REST & WebSocket API",
+      "Comprehensive Benchmark Comparison against Past Projects",
+      "Interactive Web Verification Dashboard"
+    ]
+  },
+  {
+    "title": "Privacy-Preserving Federated Intelligence for Artificial Intelligence & Edge Systems",
+    "domain": "Privacy & Artificial Intelligence & Edge Systems",
+    "problem_statement": "Previous student projects required centralized collection of sensitive user records, introducing severe data privacy and compliance risks.",
+    "past_project_citations": [
+      {
+        "source_file": "BLACK_BOOK_REPORT.docx",
+        "identified_gap": "Identified limitation in FUTURE SCOPE: 8.2 Future Scope The future of this system holds vast potential for innovation and expansion. With rapid advancements in..."
+      },
+      {
+        "source_file": "Group 2 Synopsis (1).docx",
+        "identified_gap": "Identified limitation in FUTURE SCOPE: Future Scope Integration with real quantum hardware. Extension to multimodal biometrics (face, iris). Incorporation of p..."
+      }
+    ],
+    "core_innovation": "Applies federated learning with differential privacy guarantees, training decentralized models locally on distributed client nodes without ever transmitting raw data to a central server.",
+    "proposed_methodology": "1. Local client node parameter training. 2. Secure federated aggregation server (FedAvg with DP noise). 3. Integrity verification and drift monitoring. 4. End-to-end evaluation against centralized benchmarks.",
+    "tech_stack": [
+      "Python",
+      "Flower (FL framework)",
+      "PyTorch",
+      "FastAPI",
+      "React / Streamlit"
+    ],
+    "feasibility_score": 8,
+    "expected_deliverables": [
+      "Decentralized Client-Server Simulation",
+      "Differential Privacy Verification Suite",
+      "Performance & Accuracy Trade-Off Report",
+      "Full Engineering Documentation & API"
+    ]
+  }
+]

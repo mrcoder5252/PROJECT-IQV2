@@ -1,0 +1,63 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*_test/
+data/*_test/
+
+# Logs & Temp
+*.log
+logs/
+.tmp/
+.agents/
+
+# Sensitive Information & Credentials
+.env
+.env.*
+*.key
+
+# Large Binary Archives & Unredacted PII Documents
+*.zip
+*.tar.gz
+*.7z
+data/raw/*
+!data/raw/.gitkeep
+data/extracted/*
+!data/extracted/.gitkeep
+data/cleaned/*
+!data/cleaned/.gitkeep
+data/chroma_db/
+
+# IDE & OS Metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

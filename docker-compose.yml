@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  project-iq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: project_iq_app
+    ports:
+      - "8501:8501"
+    environment:
+      - PROJECTIQ_LOG_LEVEL=INFO
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
