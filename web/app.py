@@ -56,101 +56,316 @@ st.set_page_config(
 # Custom High-End Modern CSS with WCAG 2.1 AA Accessibility Standards
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    
-    /* Screen reader only utility class for a11y */
-    .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-    }
-    
-    /* High visibility focus ring for keyboard navigation */
-    *:focus-visible {
-        outline: 3px solid #2563eb !important;
-        outline-offset: 2px !important;
-    }
-    
-    .main-header {
-        font-size: 2.2rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        margin-bottom: 0.25rem;
-        background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    .sub-header {
-        font-size: 1rem;
-        color: #334155; /* 7.1:1 contrast ratio against white */
-        margin-bottom: 1.5rem;
-        font-weight: 400;
-    }
-    
-    .metric-card {
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        border-radius: 12px;
-        padding: 1.2rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
-    }
-    
-    /* WCAG AA High-Contrast Badges */
-    .badge {
-        display: inline-block;
-        padding: 0.3rem 0.65rem;
-        font-size: 0.8rem;
-        font-weight: 700;
-        border-radius: 6px;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .badge-blue { background-color: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
-    .badge-green { background-color: #dcfce7; color: #14532d; border: 1px solid #86efac; }
-    .badge-amber { background-color: #fef3c7; color: #78350f; border: 1px solid #fde68a; }
-    .badge-red { background-color: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; }
-    .badge-purple { background-color: #f3e8ff; color: #581c87; border: 1px solid #d8b4fe; }
-    
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-weight: 600;
-        border: 1px solid #cbd5e1;
-        background: #f8fafc;
-        color: #1e293b;
-    }
-    .stTabs [aria-selected="true"] {
-        background: #1d4ed8 !important;
-        color: #ffffff !important;
-        border-color: #1d4ed8 !important;
-    }
-    
-    .callout-box {
-        border-left: 4px solid #2563eb;
-        background-color: #f0fdf4;
-        padding: 1rem;
-        border-radius: 0 8px 8px 0;
-        margin: 1rem 0;
-        color: #0f172a;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* === BASE RESET === */
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* Focus ring */
+*:focus-visible {
+    outline: 3px solid #6366f1 !important;
+    outline-offset: 2px !important;
+}
+
+/* === SIDEBAR DARK THEME === */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+}
+section[data-testid="stSidebar"] * {
+    color: #e2e8f0 !important;
+}
+section[data-testid="stSidebar"] .stRadio label {
+    color: #cbd5e1 !important;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 4px 8px;
+}
+section[data-testid="stSidebar"] .stRadio label:hover {
+    color: #ffffff !important;
+    background: rgba(99, 102, 241, 0.15);
+}
+section[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p {
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+section[data-testid="stSidebar"] hr {
+    border-color: rgba(148, 163, 184, 0.2) !important;
+}
+section[data-testid="stSidebar"] .stMetric label {
+    color: #94a3b8 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+section[data-testid="stSidebar"] .stMetric [data-testid="stMetricValue"] {
+    color: #f1f5f9 !important;
+    font-weight: 700;
+}
+section[data-testid="stSidebar"] input {
+    background: rgba(30, 41, 59, 0.8) !important;
+    border: 1px solid rgba(148, 163, 184, 0.3) !important;
+    color: #f1f5f9 !important;
+}
+
+/* === MAIN HEADER === */
+.main-header {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #a855f7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.sub-header {
+    font-size: 1rem;
+    color: #64748b;
+    margin-bottom: 2rem;
+    font-weight: 400;
+    line-height: 1.5;
+    max-width: 720px;
+}
+
+/* === GLASS METRIC CARDS === */
+.metric-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* === STAT CARD (for KPIs) === */
+.stat-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+.stat-card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    transform: translateY(-2px);
+}
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0.3rem 0;
+}
+.stat-card .stat-label {
+    font-size: 0.78rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+.stat-card .stat-icon {
+    font-size: 1.4rem;
+    margin-bottom: 0.3rem;
+}
+
+/* === BADGES === */
+.badge {
+    display: inline-block;
+    padding: 0.28rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 50px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+}
+.badge-blue { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.badge-green { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-amber { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.badge-red { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.badge-purple { background: #faf5ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+
+/* === TABS === */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px;
+    background: #f8fafc;
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    border: none;
+    background: transparent;
+    color: #475569;
+    transition: all 0.2s ease;
+}
+.stTabs [data-baseweb="tab"]:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* === CALLOUT BOX === */
+.callout-box {
+    border-left: 4px solid #6366f1;
+    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+    padding: 1.2rem 1.5rem;
+    border-radius: 0 12px 12px 0;
+    margin: 1rem 0;
+    color: #1e293b;
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+/* === WELCOME CARD === */
+.welcome-card {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #f5f3ff 100%);
+    border: 1px solid #c7d2fe;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+/* === QUICK PROMPT CHIPS === */
+.stButton > button {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    color: #374151 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+.stButton > button:hover {
+    border-color: #6366f1 !important;
+    color: #4338ca !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15) !important;
+    transform: translateY(-1px);
+}
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
+}
+.stButton > button[kind="primary"]:hover {
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+    transform: translateY(-2px);
+}
+
+/* === CHAT STYLING === */
+[data-testid="stChatMessage"] {
+    border-radius: 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 1.2rem !important;
+    margin-bottom: 0.8rem !important;
+    background: #ffffff !important;
+}
+
+/* === EXPANDER STYLING === */
+.streamlit-expanderHeader {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1e293b;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+
+/* === INPUT FIELDS === */
+.stTextInput input, .stTextArea textarea {
+    border-radius: 10px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    font-size: 0.92rem !important;
+    transition: border-color 0.2s ease !important;
+}
+.stTextInput input:focus, .stTextArea textarea:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* === SELECT BOX === */
+.stSelectbox > div > div {
+    border-radius: 10px !important;
+}
+
+/* === SEPARATOR === */
+hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+    margin: 1.5rem 0;
+}
+
+/* === PLOTLY CHARTS CONTAINER === */
+.stPlotlyChart {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* === STATUS PULSE DOT === */
+.pulse-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+}
+.pulse-dot.green { background: #22c55e; }
+.pulse-dot.blue { background: #6366f1; }
+@keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+}
+
+/* === VERDICT HERO CARDS === */
+.verdict-hero {
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    margin: 1rem 0;
+}
+.verdict-hero.success {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border: 2px solid #34d399;
+}
+.verdict-hero.warning {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 2px solid #fbbf24;
+}
+.verdict-hero.danger {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border: 2px solid #f87171;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -209,9 +424,16 @@ df_chunks, rep_data, man_data = load_telemetry_data()
 # Sidebar Navigation
 st.sidebar.markdown(
     '<header role="banner">'
-    '<h1 style="font-size: 1.5rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0;">🎓 Project-IQ</h1>'
-    '<p style="font-size: 0.85rem; color: #475569; margin-top: 0.2rem;">Academic Project Intelligence Platform<br>'
-    '<small style="color: #64748b;">(Springer Conference Design)</small></p>'
+    '<div style="text-align: center; padding: 0.5rem 0 0.8rem 0;">'
+    '<div style="font-size: 2.2rem; margin-bottom: 0.2rem;">🎓</div>'
+    '<h1 style="font-size: 1.4rem; font-weight: 800; '
+    'background: linear-gradient(135deg, #818cf8, #a78bfa); '
+    '-webkit-background-clip: text; -webkit-text-fill-color: transparent; '
+    'margin: 0;">Project-IQ</h1>'
+    '<p style="font-size: 0.72rem; color: #94a3b8 !important; margin: 0.2rem 0 0 0; '
+    'text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600;">'
+    'Academic Intelligence Platform</p>'
+    '</div>'
     '</header>',
     unsafe_allow_html=True
 )
@@ -224,7 +446,44 @@ st.sidebar.metric("Indexed Corpus Chunks", f"{db_count:,}")
 if rep_data:
     st.sidebar.metric("Sanitized Documents", rep_data.get("cleaned_documents", 0))
     total_redactions = sum(rep_data.get("total_redactions", {}).values())
-    st.sidebar.caption(f"🛡️ **PII Protected:** {total_redactions:,} occurrences")
+    st.sidebar.markdown(
+        f'<div style="font-size: 0.78rem; color: #94a3b8 !important; padding: 0.3rem 0;">'
+        f'<span class="pulse-dot green"></span> '
+        f'<strong>PII Shield Active</strong> — {total_redactions:,} redactions</div>',
+        unsafe_allow_html=True
+    )
+st.sidebar.markdown('</section>', unsafe_allow_html=True)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    '<section aria-label="AI Engine Settings">'
+    '<p style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; '
+    'font-weight: 700; color: #64748b !important; margin-bottom: 0.5rem;">'
+    '⚡ AI ENGINE</p>',
+    unsafe_allow_html=True
+)
+gemini_key = st.sidebar.text_input(
+    "Gemini API Key (Optional)",
+    type="password",
+    value=os.getenv("GEMINI_API_KEY", ""),
+    placeholder="AIzaSy...",
+    help="Enter your Google Gemini API key to enable generative conversational answers. If omitted, Project-IQ uses its built-in local structured synthesis engine."
+)
+if gemini_key:
+    rag_chat.set_api_key(gemini_key)
+    st.sidebar.markdown(
+        '<div style="font-size: 0.78rem; color: #94a3b8 !important; padding: 0.3rem 0;">'
+        '<span class="pulse-dot green"></span> '
+        '<strong>Gemini LLM Connected</strong></div>',
+        unsafe_allow_html=True
+    )
+else:
+    st.sidebar.markdown(
+        '<div style="font-size: 0.78rem; color: #94a3b8 !important; padding: 0.3rem 0;">'
+        '<span class="pulse-dot blue"></span> '
+        '<strong>Local Synthesizer Active</strong></div>',
+        unsafe_allow_html=True
+    )
 st.sidebar.markdown('</section>', unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
@@ -383,16 +642,25 @@ elif view_mode == "🏛️ Corpus Telemetry & Analytics":
     st.markdown('<div class="main-header" role="heading" aria-level="1">🏛️ Institutional Corpus Telemetry & Overview</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Real-time statistics, structural distributions, and privacy sanitization metrics across college project cohorts.</div>', unsafe_allow_html=True)
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.metric("Total Raw Documents", man_data.get("total_files", 249), help="Total academic submissions processed across departments.")
-    with c2:
-        st.metric("Sanitized Documents", rep_data.get("cleaned_documents", 242), help="Documents with administrative front-matter and PII stripped.")
-    with c3:
-        st.metric("Canonical Vector Chunks", f"{db_count:,}", help="High-signal canonical chunks indexed in ChromaDB.")
-    with c4:
-        total_red = sum(rep_data.get("total_redactions", {}).values()) if rep_data else 7385
-        st.metric("Privacy Redactions", f"{total_red:,}", help="Identities, phones, and emails shielded via spaCy NER.")
+    total_red = sum(rep_data.get("total_redactions", {}).values()) if rep_data else 7385
+    # KPI Row with stat cards
+    st.markdown(
+        '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">'
+        f'<div class="stat-card"><div class="stat-icon">📄</div>'
+        f'<div class="stat-value">{man_data.get("total_files", 249)}</div>'
+        f'<div class="stat-label">Raw Documents</div></div>'
+        f'<div class="stat-card"><div class="stat-icon">🧹</div>'
+        f'<div class="stat-value">{rep_data.get("cleaned_documents", 242)}</div>'
+        f'<div class="stat-label">Sanitized Docs</div></div>'
+        f'<div class="stat-card"><div class="stat-icon">🧬</div>'
+        f'<div class="stat-value">{db_count:,}</div>'
+        f'<div class="stat-label">Vector Chunks</div></div>'
+        f'<div class="stat-card"><div class="stat-icon">🛡️</div>'
+        f'<div class="stat-value">{total_red:,}</div>'
+        f'<div class="stat-label">PII Redactions</div></div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
     st.markdown("---")
 
@@ -442,7 +710,7 @@ elif view_mode == "🏛️ Corpus Telemetry & Analytics":
                 df_chunks,
                 x="token_count",
                 nbins=30,
-                color_discrete_sequence=["#1d4ed8"]
+                color_discrete_sequence=["#6366f1"]
             )
             fig_tok.add_vline(x=520, line_dash="dash", line_color="#b91c1c", annotation_text="Hard Max (520)")
             fig_tok.update_layout(
@@ -463,7 +731,7 @@ elif view_mode == "🏛️ Corpus Telemetry & Analytics":
                 x="Chunks",
                 y="Section",
                 orientation="h",
-                color_discrete_sequence=["#047857"]
+                color_discrete_sequence=["#8b5cf6"]
             )
             fig_sec.update_layout(
                 yaxis=dict(autorange="reversed"),
@@ -635,7 +903,7 @@ elif view_mode == "🛡️ Originality & Duplicate Detector":
                 title={'text': "Originality Score", 'font': {'size': 18, 'color': '#1e293b'}},
                 gauge={
                     'axis': {'range': [0, 100], 'tickcolor': '#334155'},
-                    'bar': {'color': "#1d4ed8"},
+                    'bar': {'color': "#6366f1"},
                     'steps': [
                         {'range': [0, 35], 'color': "#fee2e2"},
                         {'range': [35, 70], 'color': "#fef3c7"},
@@ -811,7 +1079,7 @@ elif view_mode == "⚖️ Explainable ML Quality Scorer":
                 {"Feature": k.replace("_", " ").title(), "Contribution": v}
                 for k, v in shaps.items()
             ])
-            df_shap["Color"] = df_shap["Contribution"].apply(lambda x: "#047857" if x >= 0 else "#b91c1c")
+            df_shap["Color"] = df_shap["Contribution"].apply(lambda x: "#059669" if x >= 0 else "#b91c1c")
 
             fig_shap = px.bar(
                 df_shap,
