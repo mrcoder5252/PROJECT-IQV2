@@ -487,26 +487,6 @@ else:
 st.sidebar.markdown('</section>', unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown(
-    '<section aria-label="AI Engine Settings">'
-    '<h3 style="font-size: 1.05rem; font-weight: 600; color: #1e3a8a; margin-bottom: 0.5rem;">🤖 AI RAG Engine</h3>',
-    unsafe_allow_html=True
-)
-gemini_key = st.sidebar.text_input(
-    "Gemini API Key (Optional)",
-    type="password",
-    value=os.getenv("GEMINI_API_KEY", ""),
-    placeholder="AIzaSy...",
-    help="Enter your Google Gemini API key to enable generative conversational answers. If omitted, Project-IQ uses its built-in local structured synthesis engine."
-)
-if gemini_key:
-    rag_chat.set_api_key(gemini_key)
-    st.sidebar.caption("🟢 **Connected:** Gemini LLM Active")
-else:
-    st.sidebar.caption("⚡ **Active:** Offline High-Fidelity Synthesizer")
-st.sidebar.markdown('</section>', unsafe_allow_html=True)
-
-st.sidebar.markdown("---")
 view_mode = st.sidebar.radio(
     "Modules & Navigation",
     [
