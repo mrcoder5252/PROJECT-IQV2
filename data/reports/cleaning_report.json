@@ -1,10 +1,10 @@
 {
   "cleaned_documents": 242,
   "total_redactions": {
-    "email": 219,
-    "phone": 1297,
+    "email": 220,
+    "phone": 133,
     "credential": 3,
-    "student_id": 187,
-    "local_name": 5679
+    "student_id": 188,
+    "local_name": 2741
   }
 }

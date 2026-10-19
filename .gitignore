@@ -38,10 +38,13 @@ data/*_test/
 logs/
 .tmp/
 .agents/
+.claude/
+.streamlit/secrets.toml
 
 # Sensitive Information & Credentials
 .env
 .env.*
+!.env.example
 *.key
 
 # Large Binary Archives & Unredacted PII Documents
@@ -61,3 +64,6 @@ data/chroma_db/
 Thumbs.db
 .vscode/
 .idea/
+
+# Superseded vector stores
+chroma_db_old*/

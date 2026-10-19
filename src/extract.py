@@ -62,6 +62,25 @@ def clean_text(s: str | None) -> str:
     return s.strip()
 
 
+DEPT_RE = re.compile(r"(?<![A-Za-z])(CS|DS|IT|AI|COMP|EXTC|ENTC)[\s_\-]?(\d+)(?!\d)", re.I)
+GROUP_RE = re.compile(r"^\s*(?:group|grp|team)[\s_\-]*(\d+)\b", re.I)
+
+# (category, pattern) in priority order; patterns use non-letter boundaries so "paper" does not match "newspaper".
+_CATEGORY_RULES = [
+    ("review4", re.compile(r"(?<![a-z])(review[\s_\-]*(?:no[\s_\-]*)?4|presentation|ppt|poster)(?![a-z])", re.I)),
+    ("blackbook", re.compile(r"(?<![a-z])(black[\s_\-]?book|final[\s_\-]report|project[\s_\-]report)(?![a-z])", re.I)),
+    ("research_paper", re.compile(r"(?<![a-z])(research[\s_\-]paper|paper|ieee|springer|journal|conference)(?![a-z])", re.I)),
+    ("abstract_synopsis", re.compile(r"(?<![a-z])(abstract|synopsis)(?![a-z])", re.I)),
+]
+
+
+def _detect_category(text: str) -> str | None:
+    for category, rx in _CATEGORY_RULES:
+        if rx.search(text):
+            return category
+    return None
+
+
 def parse_college_hierarchy(rel_path: str, full_path: Path | None = None) -> Dict[str, str]:
     """Parse department, group ID, category, and project name from relative/full path."""
     path_str = str(full_path or rel_path).replace("\\", "/")
@@ -73,30 +92,24 @@ def parse_college_hierarchy(rel_path: str, full_path: Path | None = None) -> Dic
         "project_name": "Unknown"
     }
 
-    # Department detection from full path or rel path
-    dept_match = re.search(r"\b(CS_\d+|DS_\d+|IT_\d+|AI_\d+|COMP_\d+|EXTC_\d+)\b", path_str, re.I)
+    # Department: "CS_1", "DS-2", "DS 3", "DS3" ... all normalise to e.g. "DS_3"
+    dept_match = DEPT_RE.search(path_str)
     if dept_match:
-        meta["department"] = dept_match.group(1).upper()
+        meta["department"] = f"{dept_match.group(1).upper()}_{int(dept_match.group(2))}"
 
-    for p in parts:
-        if re.match(r"^Group\s*\d+$", p, re.I):
-            meta["group_id"] = p.title()
+    # Group: any folder that starts with "Group N" (e.g. "Group 9", "Group_9 document", "Grp-9")
+    for p in parts[:-1]:
+        g = GROUP_RE.match(p)
+        if g:
+            meta["group_id"] = f"Group {int(g.group(1))}"
             break
 
-    # Detect category from folder hierarchy or filename
-    lower_path = rel_path.lower()
-    if any(k in lower_path for k in ["blackbook", "black_book", "black book", "final_report", "project_report"]):
-        meta["category"] = "blackbook"
-    elif any(k in lower_path for k in ["research_paper", "paper", "ieee", "springer", "journal", "conference"]):
-        meta["category"] = "research_paper"
-    elif any(k in lower_path for k in ["abstract", "synopsis"]):
-        meta["category"] = "abstract_synopsis"
-    elif any(k in lower_path for k in ["review 4", "review4", "review_4", "review no 4", "presentation", "ppt", "poster"]):
-        meta["category"] = "review4"
+    # Category: folders decide first (they are the curated signal), the file name second.
+    meta["category"] = _detect_category("/".join(parts[:-1])) or _detect_category(parts[-1]) or meta["category"]
 
     filename_stem = Path(parts[-1]).stem
     clean_stem = re.sub(
-        r"(?i)(final|report|project|blackbook|synopsis|abstract|review|100%|poster|presentation|\(|\)|\d+)",
+        r"(?i)\b(?:final|report|project|blackbook|synopsis|abstract|review|poster|presentation)\b|100%|[()]|\b\d+\b",
         "",
         filename_stem
     ).strip(" _-")
@@ -493,8 +506,8 @@ def extract_all(input_dir: str | Path, output_dir: str | Path) -> Dict[str, Any]
     failed = 0
 
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-            continue
+        if not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS or path.name.startswith("~$"):
+            continue  # skip unsupported files and Office lock files (~$report.docx)
         try:
             data = extract_one(path, root)
             meta = data["document"]

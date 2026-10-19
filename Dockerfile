@@ -9,8 +9,6 @@ LABEL description="Academic Project Intelligence Platform"
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     DEBIAN_FRONTEND=noninteractive \
-    HF_HUB_OFFLINE=1 \
-    TRANSFORMERS_OFFLINE=1 \
     PORT=8501
 
 # Install system dependencies & Tesseract OCR engine
@@ -29,11 +27,20 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     && python -m spacy download en_core_web_sm
 
+# Bake the embedding model into the image, then run fully offline
+ARG EMBEDDING_MODEL=all-MiniLM-L6-v2
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('${EMBEDDING_MODEL}')"
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+
 # Copy project files
 COPY . .
 
 # Create logs and data directories
 RUN mkdir -p logs data/raw data/extracted data/cleaned data/chunks data/chroma_db data/reports
+
+# Run as an unprivileged user
+RUN useradd -m appuser && chown -R appuser /app
+USER appuser
 
 # Expose Streamlit default port
 EXPOSE 8501

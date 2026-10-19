@@ -7,18 +7,11 @@ and recommending the most suitable novel project ideas.
 
 from __future__ import annotations
 import argparse
-import json
-import os
-from pathlib import Path
+import re
 from typing import Any, Dict, List, Optional
 
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
-os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
 from src.config import config
+from src.embeddings import cosine_similarity, encode
 from src.logger import get_logger
 
 logger = get_logger("project_iq.team_matcher")
@@ -51,19 +44,19 @@ DOMAIN_TAXONOMY = {
 }
 
 
+def _mentions(keyword: str, texts: List[str]) -> bool:
+    """Whole-word/phrase match ("ros" must not match "microservices"; "ai" must not match "maintain")."""
+    rx = re.compile(r"(?<![a-z0-9])" + re.escape(keyword) + r"(?![a-z0-9])", re.I)
+    return any(rx.search(t) for t in texts)
+
+
 class TeamMatcher:
     def __init__(self, model_name: str = config.embedding_model_name):
         self.model_name = model_name
-        try:
-            self.model = SentenceTransformer(model_name, local_files_only=True)
-        except Exception:
-            logger.info(f"Loading SentenceTransformer for team matching: {model_name}")
-            self.model = SentenceTransformer(model_name)
-
         self._domain_embeddings = {}
         for domain, info in DOMAIN_TAXONOMY.items():
             text = f"{domain}. {info['description']} Keywords: {', '.join(info['keywords'])}"
-            self._domain_embeddings[domain] = self.model.encode(text)
+            self._domain_embeddings[domain] = encode([text], model_name)[0]
 
     def evaluate_team(
         self,
@@ -96,32 +89,22 @@ class TeamMatcher:
             }
 
         team_desc = f"Team skills: {', '.join(clean_skills)}. Target interests: {', '.join(interests)}."
-        team_embedding = self.model.encode(team_desc)
+        team_embedding = encode([team_desc], self.model_name)[0]
 
         ranked_domains = []
         for domain, domain_emb in self._domain_embeddings.items():
-            # Cosine similarity
-            dot = np.dot(team_embedding, domain_emb)
-            norm = (np.linalg.norm(team_embedding) * np.linalg.norm(domain_emb)) + 1e-9
-            sim = float(dot / norm)
+            sim = cosine_similarity(team_embedding, domain_emb)
 
-            # Keyword overlap analysis
             info = DOMAIN_TAXONOMY[domain]
-            matched_keywords = [
-                k for k in info["keywords"]
-                if any(k in s.lower() for s in clean_skills) or any(k in i.lower() for i in interests)
-            ]
-            missing_recommended_skills = [
-                k for k in info["keywords"][:4]
-                if k not in matched_keywords
-            ]
+            evidence = clean_skills + interests
+            matched_keywords = [k for k in info["keywords"] if _mentions(k, evidence)]
+            missing_recommended_skills = [k for k in info["keywords"][:4] if k not in matched_keywords]
 
-            kw_coverage = min(1.0, len(matched_keywords) / 3.0) if matched_keywords else 0.0
-            sim_clamped = max(0.0, sim)
-            if kw_coverage > 0:
-                match_percentage = min(100.0, max(0.0, round((sim_clamped * 0.4 + kw_coverage * 0.6) * 100, 1)))
-            else:
-                match_percentage = min(40.0, max(0.0, round(sim_clamped * 100 * 0.5, 1)))
+            # One continuous score (no cliff at "zero keywords"): 60% keyword coverage, 40% semantic fit.
+            # MiniLM cosines for related short texts live around 0.1-0.6, so rescale before weighting.
+            kw_coverage = min(1.0, len(matched_keywords) / 3.0)
+            sem_fit = min(1.0, max(0.0, (sim - 0.10) / 0.50))
+            match_percentage = round((0.6 * kw_coverage + 0.4 * sem_fit) * 100, 1)
 
             ranked_domains.append({
                 "domain": domain,

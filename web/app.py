@@ -1,22 +1,20 @@
 """
-Project-IQ: Academic Project Intelligence Platform
-An interactive, full-fledged professional dashboard supporting:
-- Institutional Corpus Telemetry & Visual Analytics
-- Dual-Mode Hybrid RAG Explorer (Exact Word + Semantic Meaning)
-- Project Originality & Duplicate Idea Detector
-- Research Gap Mining & Novel Ideation Engine (with Grounded Citations)
-- Explainable ML Quality Scorer (XGBoost/SHAP Rubric Evaluation)
-- Student Team Expertise Profiling & Domain Matcher
-- Data Ingestion & Privacy Sanitization Admin Center
+Project-IQ: Enterprise Academic Project Intelligence Platform
+Dark-Themed Industry-Grade Streamlit Architecture
 
-Accessibility (a11y) & UX Standards:
-- WCAG 2.1 AA Compliant Color Contrast (> 4.5:1 text, > 3.0:1 UI components)
-- Multi-modal status indications (combining icons, distinct colors, and text labels)
-- High-visibility keyboard focus indicators (:focus-visible)
-- Semantic landmarks, ARIA live regions, and descriptive tooltips
+Features:
+- Student Portal & Authenticated Admin Portal
+- Conversational AI RAG Advisor (ChatGPT/Claude Style with Guardrails) & Novel Idea Generator
+- Project Originality & Duplicate Idea Detector with Executive Synthesized Brief
+- Standalone Research Gap Finder across Historical Project Limiting Factors
+- Multi-Dimensional Engineering Quality Scorer (without Faculty Committee Jargon)
+- Student Team Expertise Profiling & Domain Matcher
+- Authenticated Admin Center: Ingestion, Privacy Audit Log & Corpus Telemetry
 """
 
 from __future__ import annotations
+import hmac
+import html
 import json
 import os
 import re
@@ -42,6 +40,7 @@ from src.team_matcher import TeamMatcher, DOMAIN_TAXONOMY
 from src.duplicate_detector import DuplicateDetector
 from src.quality_scorer import QualityScorer
 from src.rag_chat import RAGChatEngine
+from src.clean import is_ner_available
 
 logger = get_logger("project_iq.web")
 
@@ -53,321 +52,571 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-End Modern CSS with WCAG 2.1 AA Accessibility Standards
+# Custom CSS — Sleek, Dark Glass Industry-Grade Engineering Theme
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* === BASE RESET === */
+:root {
+    --bg: #F7F8FA;
+    --surface: #FFFFFF;
+    --border: #E4E7EC;
+    --text-primary: #1A1F2B;
+    --text-secondary: #667085;
+    --accent: #4F46E5;
+    --accent-hover: #4338CA;
+    --success: #12B76A;
+    --warning: #F79009;
+    --critical: #F04438;
+}
+
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    color: var(--text-primary);
 }
 
-/* Screen reader only */
-.sr-only {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+/* Background Layout & Structure */
+[data-testid="stAppViewContainer"] {
+    background-color: var(--bg) !important;
+    color: var(--text-primary) !important;
+}
+[data-testid="stHeader"] {
+    background-color: rgba(247, 248, 250, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+}
+[data-testid="stSidebar"] {
+    background-color: var(--surface) !important;
+    border-right: 1px solid var(--border) !important;
+}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+    color: var(--text-secondary) !important;
 }
 
-/* Focus ring */
+/* High-Visibility Focus & Accessibility */
 *:focus-visible {
-    outline: 3px solid #6366f1 !important;
+    outline: 3px solid var(--accent) !important;
     outline-offset: 2px !important;
+    box-shadow: 0 0 12px rgba(79, 70, 229, 0.3) !important;
+    transition: outline-offset 120ms ease, box-shadow 120ms ease !important;
+}
+.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0;
+    margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
 }
 
-/* === SIDEBAR DARK THEME === */
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
+/* Text Hierarchy & Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
 }
-section[data-testid="stSidebar"] * {
-    color: #e2e8f0 !important;
+[data-testid="stMarkdownContainer"] p {
+    color: var(--text-secondary);
+    line-height: 1.6;
 }
-section[data-testid="stSidebar"] .stRadio label {
-    color: #cbd5e1 !important;
-    transition: all 0.2s ease;
+
+/* Form Inputs & Widget Labels */
+[data-testid="stWidgetLabel"] label, [data-testid="stWidgetLabel"] p {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+}
+.stTextInput input, .stTextArea textarea {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    font-family: 'Inter', sans-serif !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+    transition: all 0.15s ease !important;
+}
+.stTextInput input:focus, .stTextArea textarea:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3) !important;
+}
+div[data-baseweb="select"] > div {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+}
+div[data-baseweb="select"] > div:hover {
+    background-color: var(--bg) !important;
+}
+div[data-baseweb="popover"] ul {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, 0.08) !important;
+}
+div[data-baseweb="popover"] li {
+    color: var(--text-primary) !important;
+}
+div[data-baseweb="popover"] li:hover {
+    background-color: var(--bg) !important;
+    color: var(--accent) !important;
+}
+
+/* Chat Input Bar */
+[data-testid="stChatInput"] {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+}
+[data-testid="stChatInput"] textarea {
+    color: var(--text-primary) !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Module Hero Card */
+.module-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 4px 8px;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+    position: relative;
+    overflow: hidden;
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-section[data-testid="stSidebar"] .stRadio label:hover {
-    color: #ffffff !important;
-    background: rgba(99, 102, 241, 0.15);
-}
-section[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p {
-    font-size: 0.88rem;
-    font-weight: 500;
-}
-section[data-testid="stSidebar"] hr {
-    border-color: rgba(148, 163, 184, 0.2) !important;
-}
-section[data-testid="stSidebar"] .stMetric label {
-    color: #94a3b8 !important;
-    font-size: 0.75rem !important;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-section[data-testid="stSidebar"] .stMetric [data-testid="stMetricValue"] {
-    color: #f1f5f9 !important;
-    font-weight: 700;
-}
-section[data-testid="stSidebar"] input {
-    background: rgba(30, 41, 59, 0.8) !important;
-    border: 1px solid rgba(148, 163, 184, 0.3) !important;
-    color: #f1f5f9 !important;
-}
-
-/* === MAIN HEADER === */
-.main-header {
-    font-size: 2.4rem;
+.module-title {
+    font-size: 1.7rem;
     font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    margin-bottom: 0.3rem;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--text-primary);
 }
-
-.sub-header {
-    font-size: 1rem;
-    color: #64748b;
-    margin-bottom: 2rem;
+.module-desc {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin: 0.35rem 0 0 0;
     font-weight: 400;
-    line-height: 1.5;
-    max-width: 720px;
 }
+.module-meta-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+    flex-wrap: wrap;
+}
+.meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #F2F4F7;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+.meta-pill-blue   { background: rgba(79, 70, 229, 0.1); color: #4F46E5; border-color: rgba(79, 70, 229, 0.2); }
+.meta-pill-green  { background: rgba(18, 183, 106, 0.1); color: #12B76A; border-color: rgba(18, 183, 106, 0.2); }
+.meta-pill-purple { background: rgba(139, 92, 246, 0.1); color: #8B5CF6; border-color: rgba(139, 92, 246, 0.2); }
+.meta-pill-amber  { background: rgba(247, 144, 9, 0.1); color: #F79009; border-color: rgba(247, 144, 9, 0.2); }
+.meta-pill-red    { background: rgba(240, 68, 56, 0.1); color: #F04438; border-color: rgba(240, 68, 56, 0.2); }
 
-/* === GLASS METRIC CARDS === */
-.metric-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.metric-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.12);
-    border-color: rgba(99, 102, 241, 0.3);
-}
-
-/* === STAT CARD (for KPIs) === */
+/* Stat Cards */
 .stat-card {
-    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.2s ease;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.15rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .stat-card:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+    border-color: var(--accent);
+}
+.stat-card .stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
 }
 .stat-card .stat-value {
     font-size: 2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0.3rem 0;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 0.2rem;
+    font-feature-settings: "tnum";
 }
 .stat-card .stat-label {
-    font-size: 0.78rem;
-    color: #64748b;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    font-weight: 600;
-}
-.stat-card .stat-icon {
-    font-size: 1.4rem;
-    margin-bottom: 0.3rem;
+    font-weight: 700;
 }
 
-/* === BADGES === */
-.badge {
-    display: inline-block;
-    padding: 0.28rem 0.7rem;
-    font-size: 0.75rem;
+/* Prompt Chips */
+div:has(#prompt-chips-wrapper) + div[data-testid="stHorizontalBlock"] .stButton > button,
+div:has(#prompt-chips-wrapper) + div[data-testid="stHorizontalBlock"] + div[data-testid="stHorizontalBlock"] .stButton > button,
+div:has(#prompt-chips-wrapper) ~ div[data-testid="element-container"] div[data-testid="stHorizontalBlock"] .stButton > button,
+[data-testid="stVerticalBlock"]:has(#prompt-chips-wrapper) div[data-testid="stHorizontalBlock"] .stButton > button,
+.prompt-chip-btn {
+    min-height: 72px !important;
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 0.95rem !important;
+    text-align: left !important;
+    color: var(--text-primary) !important;
+    font-size: 0.86rem !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    white-space: pre-line !important;
+    width: 100% !important;
+}
+div:has(#prompt-chips-wrapper) + div[data-testid="stHorizontalBlock"] .stButton > button p,
+div:has(#prompt-chips-wrapper) + div[data-testid="stHorizontalBlock"] + div[data-testid="stHorizontalBlock"] .stButton > button p,
+div:has(#prompt-chips-wrapper) ~ div[data-testid="element-container"] div[data-testid="stHorizontalBlock"] .stButton > button p,
+[data-testid="stVerticalBlock"]:has(#prompt-chips-wrapper) div[data-testid="stHorizontalBlock"] .stButton > button p {
+    white-space: pre-line !important;
+    text-align: left !important;
+    color: var(--text-primary) !important;
+    font-size: 0.84rem !important;
+    line-height: 1.35 !important;
+    margin: 0 !important;
+}
+div:has(#prompt-chips-wrapper) + div[data-testid="stHorizontalBlock"] .stButton > button:hover,
+div:has(#prompt-chips-wrapper) + div[data-testid="stHorizontalBlock"] + div[data-testid="stHorizontalBlock"] .stButton > button:hover,
+div:has(#prompt-chips-wrapper) ~ div[data-testid="element-container"] div[data-testid="stHorizontalBlock"] .stButton > button:hover,
+[data-testid="stVerticalBlock"]:has(#prompt-chips-wrapper) div[data-testid="stHorizontalBlock"] .stButton > button:hover {
+    transform: translateY(-2px) !important;
+    border-color: var(--accent) !important;
+    background-color: var(--bg) !important;
+    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08) !important;
+}
+
+/* Badges & Tags */
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.74rem;
     font-weight: 600;
-    border-radius: 50px;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.02em;
+    margin: 0.15rem 0.2rem 0.15rem 0;
 }
-.badge-blue { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
-.badge-green { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-.badge-amber { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-.badge-red { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-.badge-purple { background: #faf5ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+.tag-blue   { background: rgba(79,70,229,0.08); color: #4F46E5; border: 1px solid rgba(79,70,229,0.2); }
+.tag-green  { background: rgba(18,183,106,0.08); color: #12B76A; border: 1px solid rgba(18,183,106,0.2); }
+.tag-amber  { background: rgba(247,144,9,0.08); color: #F79009; border: 1px solid rgba(247,144,9,0.2); }
+.tag-red    { background: rgba(240,68,56,0.08); color: #F04438; border: 1px solid rgba(240,68,56,0.2); }
+.tag-purple { background: rgba(139,92,246,0.08); color: #8B5CF6; border: 1px solid rgba(139,92,246,0.2); }
+.tag-slate  { background: #F2F4F7; color: #667085; border: 1px solid #E4E7EC; }
 
-/* === TABS === */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 4px;
-    background: #f8fafc;
-    padding: 4px;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
+/* Citation Cards */
+.citation-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 0.95rem 1.15rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.stTabs [data-baseweb="tab"] {
-    border-radius: 8px;
-    padding: 8px 20px;
-    font-weight: 600;
-    font-size: 0.88rem;
-    border: none;
-    background: transparent;
-    color: #475569;
-    transition: all 0.2s ease;
-}
-.stTabs [data-baseweb="tab"]:hover {
-    background: #e2e8f0;
-    color: #1e293b;
-}
-.stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+.citation-card:hover {
+    box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
 }
 
-/* === CALLOUT BOX === */
+/* Callout Box */
 .callout-box {
-    border-left: 4px solid #6366f1;
-    background: linear-gradient(135deg, #eef2ff, #f5f3ff);
-    padding: 1.2rem 1.5rem;
-    border-radius: 0 12px 12px 0;
+    border-left: 4px solid var(--accent);
+    background: rgba(79,70,229,0.06);
+    padding: 0.9rem 1.1rem;
+    border-radius: 0 8px 8px 0;
     margin: 1rem 0;
-    color: #1e293b;
-    font-size: 0.92rem;
+    color: var(--text-primary);
+    font-size: 0.91rem;
     line-height: 1.6;
 }
 
-/* === WELCOME CARD === */
-.welcome-card {
-    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #f5f3ff 100%);
-    border: 1px solid #c7d2fe;
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
+/* Pulse Dot */
+.pulse-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; margin-right: 6px; vertical-align: middle;
+}
+.pulse-dot.green { background: #12B76A; box-shadow: 0 0 0 3px rgba(18, 183, 106, 0.25); }
+.pulse-dot.blue  { background: #4F46E5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25); }
+.pulse-dot.amber { background: #F79009; box-shadow: 0 0 0 3px rgba(247, 144, 9, 0.25); }
+
+/* Sidebar Radio Navigation Items */
+[data-testid="stSidebar"] div[role="radiogroup"] {
+    gap: 4px;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 0.55rem 0.8rem !important;
+    margin-bottom: 0.25rem !important;
+    cursor: pointer !important;
+    transition: all 120ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+    font-size: 0.84rem !important;
+    margin: 0 !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+    background-color: var(--bg) !important;
+    transform: translateX(2px) !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
+    background-color: rgba(79,70,229,0.06) !important;
+    border-color: var(--accent) !important;
+    border-left: 2px solid var(--accent) !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {
+    color: var(--accent) !important;
+    font-weight: 700 !important;
 }
 
-/* === QUICK PROMPT CHIPS === */
-.stButton > button {
-    border-radius: 10px !important;
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 6px !important;
+    background: #F2F4F7 !important;
+    padding: 4px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border) !important;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 6px !important;
+    padding: 8px 18px !important;
     font-weight: 600 !important;
-    font-size: 0.85rem !important;
-    border: 1px solid #e2e8f0 !important;
-    background: #ffffff !important;
-    color: #374151 !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
-}
-.stButton > button:hover {
-    border-color: #6366f1 !important;
-    color: #4338ca !important;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15) !important;
-    transform: translateY(-1px);
-}
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #6366f1, #7c3aed) !important;
-    color: #ffffff !important;
+    font-size: 0.88rem !important;
+    background: transparent !important;
+    color: var(--text-secondary) !important;
     border: none !important;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
+    transition: all 0.15s ease !important;
+}
+.stTabs [aria-selected="true"] {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+}
+
+/* Button Styling */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0.6rem 1.25rem !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+    transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
-    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2) !important;
+}
+.stButton > button:not([kind="primary"]) {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.stButton > button:not([kind="primary"]):hover {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    background-color: var(--bg) !important;
+}
+.stButton > button:active {
+    transform: scale(0.97) !important;
 }
 
-/* === CHAT STYLING === */
+/* Expanders */
+[data-testid="stExpander"] {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+    margin-bottom: 0.75rem !important;
+}
+[data-testid="stExpander"]:hover {
+    border-color: var(--accent) !important;
+}
+
+/* Chat Messages */
 [data-testid="stChatMessage"] {
-    border-radius: 16px !important;
-    border: 1px solid #e2e8f0 !important;
-    padding: 1.2rem !important;
-    margin-bottom: 0.8rem !important;
-    background: #ffffff !important;
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 1.1rem 1.25rem !important;
+    margin-bottom: 0.9rem !important;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06) !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]),
+[data-testid="stChatMessage"]:has([aria-label*="user" i]) {
+    background-color: rgba(79,70,229,0.06) !important;
+    border-left: 4px solid var(--accent) !important;
+}
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]),
+[data-testid="stChatMessage"]:has([aria-label*="assistant" i]) {
+    background-color: var(--surface) !important;
+    border-left: 4px solid #8B5CF6 !important;
 }
 
-/* === EXPANDER STYLING === */
-.streamlit-expanderHeader {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #1e293b;
-    background: #f8fafc;
-    border-radius: 10px;
+/* Animations */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+[data-testid="stAppViewContainer"] > section > div {
+    animation: fadeSlideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* === INPUT FIELDS === */
-.stTextInput input, .stTextArea textarea {
-    border-radius: 10px !important;
-    border: 1.5px solid #e2e8f0 !important;
-    font-size: 0.92rem !important;
-    transition: border-color 0.2s ease !important;
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }
-.stTextInput input:focus, .stTextArea textarea:focus {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
-}
-
-/* === SELECT BOX === */
-.stSelectbox > div > div {
-    border-radius: 10px !important;
+.skeleton-loading {
+    background: linear-gradient(90deg, #E4E7EC 25%, #F2F4F7 50%, #E4E7EC 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
 }
 
-/* === SEPARATOR === */
-hr {
-    border: none;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-    margin: 1.5rem 0;
+@keyframes toastSlideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+[data-testid="stAlert"] {
+    animation: toastSlideIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* === PLOTLY CHARTS CONTAINER === */
-.stPlotlyChart {
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-/* === STATUS PULSE DOT === */
-.pulse-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 6px;
-    animation: pulse 2s infinite;
-}
-.pulse-dot.green { background: #22c55e; }
-.pulse-dot.blue { background: #6366f1; }
-@keyframes pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
-}
-
-/* === VERDICT HERO CARDS === */
-.verdict-hero {
-    border-radius: 16px;
-    padding: 1.5rem 2rem;
-    text-align: center;
-    margin: 1rem 0;
-}
-.verdict-hero.success {
-    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-    border: 2px solid #34d399;
-}
-.verdict-hero.warning {
-    background: linear-gradient(135deg, #fffbeb, #fef3c7);
-    border: 2px solid #fbbf24;
-}
-.verdict-hero.danger {
-    background: linear-gradient(135deg, #fef2f2, #fee2e2);
-    border: 2px solid #f87171;
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+def safe_html(text: Any) -> str:
+    """Escapes text safely for direct interpolation into HTML templates."""
+    if text is None:
+        return ""
+    return html.escape(str(text))
+
+
+def render_hero_header(icon: str, title: str, subtitle: str, badges: Optional[List[tuple[str, str]]] = None):
+    """Renders a consistent, polished gradient hero banner for each functional module."""
+    badges_html = ""
+    if badges:
+        pills = [f'<span class="meta-pill {safe_html(c)}">{safe_html(t)}</span>' for t, c in badges]
+        badges_html = f'<div class="module-meta-badges">{" ".join(pills)}</div>'
+
+    st.markdown(
+        f'<div class="module-hero">'
+        f'<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">'
+        f'<span style="font-size: 1.75rem; line-height: 1;">{icon}</span>'
+        f'<h1 class="module-title">{safe_html(title)}</h1>'
+        f'</div>'
+        f'<p class="module-desc">{safe_html(subtitle)}</p>'
+        f'{badges_html}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+
+def render_citation_card(src: dict) -> str:
+    """Formats an institutional citation into a safe, polished dark HTML card."""
+    idx = safe_html(src.get("index", 1))
+    src_file = safe_html(src.get("source_file", "Archive Document"))
+    dept = safe_html(src.get("department", "General"))
+    group = safe_html(src.get("group_id", "Group"))
+    sec = safe_html(src.get("section", "Passage"))
+    aff = safe_html(src.get("similarity_score", "0.85"))
+    excerpt = safe_html(src.get("excerpt", ""))
+    return (
+        f'<div class="citation-card">'
+        f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.3rem;">'
+        f'<span style="font-weight: 700; color: #4F46E5; font-size: 0.88rem;">[{idx}] {src_file}</span>'
+        f'<div>'
+        f'<span class="tag tag-blue">{dept} / {group}</span>'
+        f'<span class="tag tag-purple">Section: {sec}</span>'
+        f'<span class="tag tag-green">Affinity: {aff}</span>'
+        f'</div>'
+        f'</div>'
+        f'<blockquote style="margin: 0; padding: 0.5rem 0.8rem; background: #F7F8FA; border-left: 3px solid #D0D5DD; border-radius: 4px; font-size: 0.84rem; color: #667085; font-style: italic;">'
+        f'"{excerpt}"'
+        f'</blockquote>'
+        f'</div>'
+    )
+
+
+def apply_plotly_theme(fig, height=320):
+    """Applies modern dark typography and styling to Plotly figures."""
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="Inter, -apple-system, sans-serif", color="#1A1F2B", size=12),
+        margin=dict(t=25, b=20, l=20, r=20),
+        height=height,
+        hoverlabel=dict(
+            bgcolor="#FFFFFF",
+            font_size=12,
+            font_family="Inter, sans-serif",
+            font_color="#1A1F2B"
+        )
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#E4E7EC", zerolinecolor="#D0D5DD")
+    fig.update_yaxes(showgrid=True, gridcolor="#E4E7EC", zerolinecolor="#D0D5DD")
+    return fig
+
+
+def extract_text_from_upload(uploaded_file) -> str:
+    """Safely extracts text from uploaded draft (.txt, .pdf, .docx)."""
+    if uploaded_file is None:
+        return ""
+    fname = uploaded_file.name.lower()
+    try:
+        if fname.endswith(".txt"):
+            return uploaded_file.getvalue().decode("utf-8", errors="ignore")
+        elif fname.endswith(".pdf"):
+            import fitz
+            doc = fitz.open(stream=uploaded_file.getvalue(), filetype="pdf")
+            text_parts = [page.get_text() for page in doc]
+            return "\n".join(text_parts)
+        elif fname.endswith(".docx"):
+            import docx
+            import io
+            doc = docx.Document(io.BytesIO(uploaded_file.getvalue()))
+            return "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+    except Exception as e:
+        logger.warning(f"Could not extract text from {fname}: {e}")
+    return ""
 
 
 @st.cache_resource
@@ -420,771 +669,993 @@ def load_telemetry_data():
 
 
 df_chunks, rep_data, man_data = load_telemetry_data()
+db_count = store.count()
+total_redactions = sum(rep_data.get("total_redactions", {}).values()) if (rep_data and "total_redactions" in rep_data) else 0
 
-# Sidebar Navigation
+# Check background Gemini API key and spaCy NER
+if not os.getenv("GEMINI_API_KEY") and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+    os.environ["GEMINI_API_KEY"] = str(st.secrets["GEMINI_API_KEY"])
+
+has_gemini = bool(os.getenv("GEMINI_API_KEY") or config.gemini_api_key)
+ner_active = is_ner_available()
+
+# -------------------------------------------------------------
+# Sidebar: Custom Logo Branding & Portal Mode Switcher
+# -------------------------------------------------------------
 st.sidebar.markdown(
     '<header role="banner">'
-    '<div style="text-align: center; padding: 0.5rem 0 0.8rem 0;">'
-    '<div style="font-size: 2.2rem; margin-bottom: 0.2rem;">🎓</div>'
-    '<h1 style="font-size: 1.4rem; font-weight: 800; '
-    'background: linear-gradient(135deg, #818cf8, #a78bfa); '
-    '-webkit-background-clip: text; -webkit-text-fill-color: transparent; '
-    'margin: 0;">Project-IQ</h1>'
-    '<p style="font-size: 0.72rem; color: #94a3b8 !important; margin: 0.2rem 0 0 0; '
-    'text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600;">'
-    'Academic Intelligence Platform</p>'
+    '<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0 0.85rem 0;">'
+    '<div style="width: 44px; height: 44px; border-radius: 12px; background: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15); color: white;">🎓</div>'
+    '<div>'
+    '<div style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; background: linear-gradient(135deg, #1A1F2B 0%, #4F46E5 60%, #4F46E5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1;">Project-IQ</div>'
+    '<div style="font-size: 0.7rem; color: #667085; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px;">Academic Intelligence</div>'
     '</div>'
+    '</div>'
+    '<div style="display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(79, 70, 229, 0.06); color: #4F46E5; border: 1px solid rgba(79, 70, 229, 0.15); border-radius: 20px; padding: 0.15rem 0.55rem; font-size: 0.68rem; font-weight: 700; margin-bottom: 0.85rem;">'
+    '<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4F46E5;"></span> Project-IQ v2.0 • Academic Edition</div>'
     '</header>',
     unsafe_allow_html=True
 )
-st.sidebar.markdown("---")
 
-# Quick Stats Widget with ARIA support
-db_count = store.count()
-st.sidebar.markdown('<section aria-label="Quick System Metrics">', unsafe_allow_html=True)
-st.sidebar.metric("Indexed Corpus Chunks", f"{db_count:,}")
-if rep_data:
-    st.sidebar.metric("Sanitized Documents", rep_data.get("cleaned_documents", 0))
-    total_redactions = sum(rep_data.get("total_redactions", {}).values())
+# AI Engine Status in Sidebar
+if has_gemini:
     st.sidebar.markdown(
-        f'<div style="font-size: 0.78rem; color: #94a3b8 !important; padding: 0.3rem 0;">'
-        f'<span class="pulse-dot green"></span> '
-        f'<strong>PII Shield Active</strong> — {total_redactions:,} redactions</div>',
-        unsafe_allow_html=True
-    )
-st.sidebar.markdown('</section>', unsafe_allow_html=True)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    '<section aria-label="AI Engine Settings">'
-    '<p style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; '
-    'font-weight: 700; color: #64748b !important; margin-bottom: 0.5rem;">'
-    '⚡ AI ENGINE</p>',
-    unsafe_allow_html=True
-)
-gemini_key = st.sidebar.text_input(
-    "Gemini API Key (Optional)",
-    type="password",
-    value=os.getenv("GEMINI_API_KEY", ""),
-    placeholder="AIzaSy...",
-    help="Enter your Google Gemini API key to enable generative conversational answers. If omitted, Project-IQ uses its built-in local structured synthesis engine."
-)
-if gemini_key:
-    rag_chat.set_api_key(gemini_key)
-    st.sidebar.markdown(
-        '<div style="font-size: 0.78rem; color: #94a3b8 !important; padding: 0.3rem 0;">'
+        '<div style="font-size: 0.76rem; color: #10b981 !important; padding: 0.2rem 0; font-weight: 600; margin-bottom: 0.6rem;">'
         '<span class="pulse-dot green"></span> '
-        '<strong>Gemini LLM Connected</strong></div>',
+        '🟢 LLM Active (Gemini API)</div>',
         unsafe_allow_html=True
     )
 else:
     st.sidebar.markdown(
-        '<div style="font-size: 0.78rem; color: #94a3b8 !important; padding: 0.3rem 0;">'
-        '<span class="pulse-dot blue"></span> '
-        '<strong>Local Synthesizer Active</strong></div>',
+        '<div style="font-size: 0.76rem; color: #f59e0b !important; padding: 0.2rem 0; font-weight: 600; margin-bottom: 0.6rem;">'
+        '<span class="pulse-dot amber"></span> '
+        '🟡 Fallback Mode (Local Synthesis)</div>',
         unsafe_allow_html=True
     )
-st.sidebar.markdown('</section>', unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
-view_mode = st.sidebar.radio(
-    "Modules & Navigation",
-    [
-        "💬 Conversational AI RAG Advisor (Ask Anything)",
-        "🏛️ Corpus Telemetry & Analytics",
-        "🔎 Corpus Document & Passage Search",
-        "🛡️ Originality & Duplicate Detector",
-        "💡 Research Gap Miner & Novel Ideator",
-        "⚖️ Explainable ML Quality Scorer",
-        "👥 Student Team Domain Matcher",
-        "⚙️ Ingestion & Privacy Audit Center"
-    ],
-    help="Select a functional module to explore past project data or evaluate new proposals."
+st.sidebar.markdown('<div style="margin: 0.4rem 0 0.6rem 0; border-top: 1px solid #E4E7EC;"></div>', unsafe_allow_html=True)
+
+# Portal Switcher (Student vs Admin)
+portal_mode = st.sidebar.radio(
+    "Portal Workspace",
+    ["🎓 Student Portal", "🔐 Admin Portal"],
+    index=0,
+    help="Toggle between Student Project Intelligence Tools and Administrative Ingestion & Audit logs."
 )
 
-# -------------------------------------------------------------
-# Module 0: Conversational AI RAG Advisor (Ask Anything)
-# -------------------------------------------------------------
-if view_mode == "💬 Conversational AI RAG Advisor (Ask Anything)":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">💬 Conversational AI RAG Advisor</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Ask any open-ended question across all 4,792 indexed college project passages. Powered by dense ChromaDB retrieval + Gemini / Local Academic Synthesis.</div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div style="margin: 0.4rem 0 0.6rem 0; border-top: 1px solid #E4E7EC;"></div>', unsafe_allow_html=True)
 
-    # Top Configuration Controls
-    with st.expander("⚙️ RAG Retrieval & Filter Settings", expanded=False):
-        c_f1, c_f2, c_f3 = st.columns(3)
-        with c_f1:
-            rag_dept = st.selectbox("Department Focus", ["ALL", "CS_1", "CS_2", "DS_1", "DS_2"], help="Filter context chunks by department cohort.")
-        with c_f2:
-            rag_sec = st.selectbox("Section Focus", ["ALL", "FUTURE SCOPE", "METHODOLOGY", "RESULTS", "CONCLUSION", "ABSTRACT"], help="Focus on specific sections such as limitations or methodology.")
-        with c_f3:
-            rag_top_k = st.slider("Context Passages", min_value=3, max_value=12, value=6, help="Number of nearest chunks retrieved to ground the answer.")
-
-    # Quick-Start Prompt Chips
-    st.markdown('<p style="font-size: 0.9rem; font-weight: 600; color: #475569; margin-bottom: 0.4rem;">⚡ Quick Research Inquiries (Click to ask):</p>', unsafe_allow_html=True)
-    q1, q2, q3 = st.columns(3)
-    q4, q5, q6 = st.columns(3)
-    
-    selected_prompt = None
-    with q1:
-        if st.button("🌾 Agriculture Hardware Limits", use_container_width=True, help="What hardware, sensor, and battery limitations were reported in past Smart Agriculture IoT projects?"):
-            selected_prompt = "What hardware, sensor, and battery limitations were reported in past Smart Agriculture IoT projects?"
-    with q2:
-        if st.button("🩺 Healthcare Deep Learning Models", use_container_width=True, help="Which deep learning architectures (e.g. CNNs, ResNet) and datasets were used in healthcare and medical diagnosis projects?"):
-            selected_prompt = "Which deep learning architectures (e.g. CNNs, ResNet) and datasets were used in healthcare and medical diagnosis projects?"
-    with q3:
-        if st.button("🔐 Blockchain Latency & Gas Costs", use_container_width=True, help="How did past blockchain and smart contract projects address transaction latency, security, and gas fee constraints?"):
-            selected_prompt = "How did past blockchain and smart contract projects address transaction latency, security, and gas fee constraints?"
-    with q4:
-        if st.button("🤖 NLP Research Gaps in CS & DS", use_container_width=True, help="What are the most common unaddressed research gaps and future scope items across NLP projects?"):
-            selected_prompt = "What are the most common unaddressed research gaps and future scope items across NLP projects?"
-    with q5:
-        if st.button("📊 Compare CS vs DS Methodologies", use_container_width=True, help="Compare the technical methodologies and evaluation metrics between Computer Science (CS) and Data Science (DS) projects."):
-            selected_prompt = "Compare the technical methodologies and evaluation metrics between Computer Science (CS) and Data Science (DS) projects."
-    with q6:
-        if st.button("💡 Synthesize Novel Capstone Proposal", use_container_width=True, help="Synthesize a novel capstone project proposal addressing unaddressed limitations in the repository."):
-            selected_prompt = "Based on the limitations of past student projects, synthesize a novel capstone project proposal with technical stack and evaluation metrics."
-
-    # Initialize Chat Session State
-    if "rag_chat_history" not in st.session_state:
-        st.session_state.rag_chat_history = [
-            {
-                "role": "assistant",
-                "content": "👋 **Welcome to Project-IQ Academic Advisor!**\n\nI have indexed **4,792 canonical passages** from your institution's past project reports across Computer Science and Data Science.\n\nYou can ask me **any question**—from specific model architectures, experimental benchmarks, and dataset constraints, to cross-group comparisons and novel project ideation.\n\n*Click one of the quick prompt buttons above or type your question below to get started!*",
-                "sources": [],
-                "engine": "System Greeting"
-            }
-        ]
-
-    # Conversation management button
-    if len(st.session_state.rag_chat_history) > 1:
-        c_btn1, c_btn2 = st.columns([6, 1])
-        with c_btn2:
-            if st.button("🗑️ Reset Chat", use_container_width=True):
-                st.session_state.rag_chat_history = [st.session_state.rag_chat_history[0]]
-                st.rerun()
-
-    # Render Chat History
-    for msg in st.session_state.rag_chat_history:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg.get("sources"):
-                with st.expander(f"📚 Grounded Institutional Citations ({len(msg['sources'])} Source Passages)", expanded=False):
-                    for src in msg["sources"]:
-                        st.markdown(f"**[{src['index']}] {src['source_file']}** — `{src['department']} / {src['group_id']}` | Section: `{src['section']}` *(Affinity: {src['similarity_score']})*")
-                        st.caption(f"> \"{src['excerpt']}\"")
-                        st.markdown("---")
-            if msg.get("engine") and msg["engine"] != "System Greeting":
-                st.caption(f"⚙️ *Synthesized via {msg['engine']}*")
-
-    # Chat Input handling
-    user_input = st.chat_input("Ask any question about past college projects, architectures, datasets, gaps...")
-    active_query = selected_prompt or user_input
-
-    if active_query:
-        # Append user message and render immediately
-        st.session_state.rag_chat_history.append({"role": "user", "content": active_query})
-        with st.chat_message("user"):
-            st.markdown(active_query)
-
-        # Generate assistant response
-        with st.chat_message("assistant"):
-            with st.spinner("Analyzing 4,792 institutional project passages..."):
-                result = rag_chat.ask(
-                    question=active_query,
-                    chat_history=[{"role": m["role"], "content": m["content"]} for m in st.session_state.rag_chat_history[:-1]],
-                    department_filter=rag_dept,
-                    section_filter=rag_sec,
-                    n_results=rag_top_k
-                )
-
-                st.markdown(result["answer"])
-                if result.get("sources"):
-                    with st.expander(f"📚 Grounded Institutional Citations ({len(result['sources'])} Source Passages)", expanded=False):
-                        for src in result["sources"]:
-                            st.markdown(f"**[{src['index']}] {src['source_file']}** — `{src['department']} / {src['group_id']}` | Section: `{src['section']}` *(Affinity: {src['similarity_score']})*")
-                            st.caption(f"> \"{src['excerpt']}\"")
-                            st.markdown("---")
-                st.caption(f"⚙️ *Synthesized via {result['engine_used']}*")
-
-                # Append to session state
-                st.session_state.rag_chat_history.append({
-                    "role": "assistant",
-                    "content": result["answer"],
-                    "sources": result.get("sources", []),
-                    "engine": result["engine_used"]
-                })
-                st.rerun()
+# Main Banner: Warning when Gemini API Key is not configured
+if not has_gemini:
+    st.warning("⚠️ **Notice: Gemini API key is not configured (`GEMINI_API_KEY`).** Project-IQ is operating in local fallback mode using rule-based synthesis.")
 
 # -------------------------------------------------------------
-# Module 1: Institutional Corpus Telemetry & Visual Analytics
+# Student Portal Navigation & Views
 # -------------------------------------------------------------
-elif view_mode == "🏛️ Corpus Telemetry & Analytics":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">🏛️ Institutional Corpus Telemetry & Overview</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Real-time statistics, structural distributions, and privacy sanitization metrics across college project cohorts.</div>', unsafe_allow_html=True)
-
-    total_red = sum(rep_data.get("total_redactions", {}).values()) if rep_data else 7385
-    # KPI Row with stat cards
-    st.markdown(
-        '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">'
-        f'<div class="stat-card"><div class="stat-icon">📄</div>'
-        f'<div class="stat-value">{man_data.get("total_files", 249)}</div>'
-        f'<div class="stat-label">Raw Documents</div></div>'
-        f'<div class="stat-card"><div class="stat-icon">🧹</div>'
-        f'<div class="stat-value">{rep_data.get("cleaned_documents", 242)}</div>'
-        f'<div class="stat-label">Sanitized Docs</div></div>'
-        f'<div class="stat-card"><div class="stat-icon">🧬</div>'
-        f'<div class="stat-value">{db_count:,}</div>'
-        f'<div class="stat-label">Vector Chunks</div></div>'
-        f'<div class="stat-card"><div class="stat-icon">🛡️</div>'
-        f'<div class="stat-value">{total_red:,}</div>'
-        f'<div class="stat-label">PII Redactions</div></div>'
-        '</div>',
-        unsafe_allow_html=True
+if portal_mode == "🎓 Student Portal":
+    student_nav = st.sidebar.radio(
+        "Student Intelligence Modules",
+        [
+            "💬 AI Project Advisor & Ideator",
+            "🛡️ Originality & Duplicate Checker",
+            "🔬 Research Gap Finder",
+            "⚖️ Project Quality Scorer",
+            "👥 Student Team Skill Matcher"
+        ],
+        help="Explore student tools to evaluate, refine, and originate engineering capstone projects."
     )
 
-    st.markdown("---")
-
-    if not df_chunks.empty:
-        col_left, col_right = st.columns(2)
-        with col_left:
-            st.subheader("📊 Chunks by Department")
-            dept_counts = df_chunks["department"].value_counts().reset_index()
-            dept_counts.columns = ["Department", "Chunks"]
-            fig_dept = px.bar(
-                dept_counts,
-                x="Department",
-                y="Chunks",
-                color="Department",
-                color_discrete_sequence=px.colors.qualitative.Safe,
-                text="Chunks"
-            )
-            fig_dept.update_layout(
-                showlegend=False,
-                margin=dict(t=10, b=10, l=10, r=10),
-                height=320,
-                xaxis_title="Engineering Department",
-                yaxis_title="Canonical Chunk Count"
-            )
-            st.plotly_chart(fig_dept, use_container_width=True)
-            st.caption("Figure 1: Distribution of indexed text chunks across Computer Science and Data Science divisions.")
-
-        with col_right:
-            st.subheader("📑 Document Category Distribution")
-            cat_counts = df_chunks["category"].value_counts().reset_index()
-            cat_counts.columns = ["Category", "Chunks"]
-            fig_cat = px.pie(
-                cat_counts,
-                names="Category",
-                values="Chunks",
-                hole=0.45,
-                color_discrete_sequence=px.colors.qualitative.Prism
-            )
-            fig_cat.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=320)
-            st.plotly_chart(fig_cat, use_container_width=True)
-            st.caption("Figure 2: Proportional representation of Blackbooks, Research Papers, Synopses, and Presentations.")
-
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            st.subheader("📏 RAG Token Size Compliance (Hard Max $\le 520$)")
-            fig_tok = px.histogram(
-                df_chunks,
-                x="token_count",
-                nbins=30,
-                color_discrete_sequence=["#6366f1"]
-            )
-            fig_tok.add_vline(x=520, line_dash="dash", line_color="#b91c1c", annotation_text="Hard Max (520)")
-            fig_tok.update_layout(
-                xaxis_title="Token Count (tiktoken cl100k_base)",
-                yaxis_title="Passage Frequency",
-                margin=dict(t=10, b=10, l=10, r=10),
-                height=300
-            )
-            st.plotly_chart(fig_tok, use_container_width=True)
-            st.caption("Figure 3: Token length distribution demonstrating strict compliance with the $\le 520$ token safety boundary.")
-
-        with col_t2:
-            st.subheader("🔬 Section Boundary Breakdown")
-            sec_counts = df_chunks["section"].value_counts().head(8).reset_index()
-            sec_counts.columns = ["Section", "Chunks"]
-            fig_sec = px.bar(
-                sec_counts,
-                x="Chunks",
-                y="Section",
-                orientation="h",
-                color_discrete_sequence=["#8b5cf6"]
-            )
-            fig_sec.update_layout(
-                yaxis=dict(autorange="reversed"),
-                margin=dict(t=10, b=10, l=10, r=10),
-                height=300,
-                xaxis_title="Chunks in Section",
-                yaxis_title="Academic Section"
-            )
-            st.plotly_chart(fig_sec, use_container_width=True)
-            st.caption("Figure 4: Frequency of section headers mined across reports.")
-    else:
-        st.info("Corpus data is not yet indexed. Run `python run_pipeline.py` to populate telemetry.")
-
-    with st.expander("🏛️ System Architecture Reference (Springer Conference Design)"):
-        st.markdown("""
-        **Pipeline Data Flow:**
-        1. **Multi-Format Extraction:** PyMuPDF (PDFs), python-pptx (Slides), python-docx, with Tesseract OCR fallback for scanned reports.
-        2. **Privacy Sanitization:** Administrative front-matter removal and PII redaction via regex & spaCy NER.
-        3. **Structure-Aware Chunking:** Token bounds (target 450, hard ceiling $\le 520$), section splitting, and 6-shingle Jaccard near-duplicate clustering.
-        4. **Vector Storage & Hybrid Retrieval:** Persistent ChromaDB with SentenceTransformers (`all-MiniLM-L6-v2`).
-        5. **Gap Analysis & RAG Ideation:** Limitation mining across past projects to synthesize novel proposals with citations.
-        6. **Explainable ML Quality Scoring:** Feature extraction & SHAP-style explainable rubric advice.
-        7. **Team Expertise Matcher:** Embedding cosine similarity & technical keyword alignment.
-        """)
-
-# -------------------------------------------------------------
-# Module 2: Corpus Document & Passage Search
-# -------------------------------------------------------------
-elif view_mode == "🔎 Corpus Document & Passage Search":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">🔎 Corpus Document & Passage Search</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Search past project reports using exact keyword matching, dense semantic embeddings, or hybrid filtering.</div>', unsafe_allow_html=True)
-
-    with st.container():
-        row1_col1, row1_col2 = st.columns([3, 1])
-        with row1_col1:
-            search_query = st.text_input(
-                "Enter Search Query or Concept",
-                placeholder="e.g. CNN accuracy plant disease detection edge latency",
-                help="Search term for dense vector retrieval or lexical matching."
-            )
-        with row1_col2:
-            search_mode = st.selectbox(
-                "Search Mode",
-                ["Dense Semantic Search", "Exact Keyword Search", "Hybrid (Keyword + Semantic)"],
-                help="Dense search uses 384-dimensional embeddings; Exact search finds exact substrings."
-            )
-
-        row2_col1, row2_col2, row2_col3, row2_col4 = st.columns(4)
-        with row2_col1:
-            dept_filter = st.selectbox("Department Filter", ["ALL", "CS_1", "CS_2", "DS_1", "DS_2", "General"])
-        with row2_col2:
-            section_filter = st.selectbox(
-                "Section Filter",
-                ["ALL", "FUTURE SCOPE", "METHODOLOGY", "RESULTS", "CONCLUSION", "ABSTRACT", "LITERATURE SURVEY"]
-            )
-        with row2_col3:
-            cat_filter = st.selectbox(
-                "Document Type",
-                ["ALL", "blackbook", "research_paper", "review4", "abstract_synopsis"]
-            )
-        with row2_col4:
-            top_k = st.slider("Top Chunks", min_value=3, max_value=20, value=6, help="Number of nearest passages to retrieve.")
-
-    if search_query:
-        with st.spinner("Executing RAG retrieval across indexed corpus..."):
-            sec = None if section_filter == "ALL" else section_filter
-            dept = None if dept_filter == "ALL" else dept_filter
-            cat = None if cat_filter == "ALL" else cat_filter
-
-            if search_mode == "Exact Keyword Search" and not df_chunks.empty:
-                mask = df_chunks["text"].str.contains(re.escape(search_query), case=False, na=False)
-                if sec:
-                    mask &= (df_chunks["section"] == sec)
-                if dept:
-                    mask &= (df_chunks["department"] == dept)
-                if cat:
-                    mask &= (df_chunks["category"] == cat)
-                matched_df = df_chunks[mask].head(top_k)
-
-                results = []
-                for _, row in matched_df.iterrows():
-                    results.append({
-                        "text": row["text"],
-                        "similarity": 1.0,
-                        "metadata": {
-                            "document_id": row.get("document_id", "N/A"),
-                            "source_file": row.get("source_file", "N/A"),
-                            "department": row.get("department", "N/A"),
-                            "group_id": row.get("group_id", "N/A"),
-                            "category": row.get("category", "N/A"),
-                            "section": row.get("section", "N/A"),
-                            "token_count": row.get("token_count", 0),
-                            "has_citation": row.get("has_citation", False),
-                            "has_numbers": row.get("has_numbers", False)
-                        }
-                    })
-            else:
-                results = store.query_similar(
-                    query_text=search_query,
-                    n_results=top_k * 2 if (dept or cat) else top_k,
-                    section=sec
-                )
-                if dept:
-                    results = [r for r in results if r["metadata"].get("department") == dept]
-                if cat:
-                    results = [r for r in results if r["metadata"].get("category") == cat]
-                results = results[:top_k]
-
-        if results:
-            st.success(f"Retrieved {len(results)} relevant project passages matching your query criteria:")
-            for i, r in enumerate(results, 1):
-                meta = r["metadata"]
-                sim = r.get("similarity", 1.0)
-                with st.expander(
-                    f"#{i} [{meta.get('department', 'General')} / {meta.get('group_id', 'Group')}] {meta.get('source_file')} — Section: {meta.get('section')} (Affinity: {sim:.2f})",
-                    expanded=(i == 1)
-                ):
-                    b_col1, b_col2, b_col3, b_col4 = st.columns(4)
-                    b_col1.markdown(f"**Category:** `{meta.get('category')}`")
-                    b_col2.markdown(f"**Tokens:** `{meta.get('token_count')}`")
-                    b_col3.markdown(f"**Citations:** `{'Yes' if meta.get('has_citation') else 'None'}`")
-                    b_col4.markdown(f"**Metrics:** `{'Yes' if meta.get('has_numbers') else 'None'}`")
-
-                    st.markdown("---")
-                    st.write(r["text"])
-        else:
-            st.info("No matching passages found. Try relaxing the department/section filters or broadening the search query.")
-
-# -------------------------------------------------------------
-# Module 3: Originality & Duplicate Project Detector
-# -------------------------------------------------------------
-elif view_mode == "🛡️ Originality & Duplicate Detector":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">🛡️ Project Originality & Duplicate Idea Detector</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Screen proposed project concepts against the historical repository to detect duplication and safeguard academic novelty.</div>', unsafe_allow_html=True)
-
-    col_in1, col_in2 = st.columns([1, 1])
-    with col_in1:
-        test_title = st.text_input(
-            "Proposed Project Title",
-            "Acupoint Therapy and Symptom Management Android Application",
-            help="Full tentative title of the proposed student project."
-        )
-    with col_in2:
-        test_abstract = st.text_area(
-            "Proposed Project Abstract / Summary",
-            "An AI-powered Android mobile app developed with Firebase for musculoskeletal pain relief, guiding patients through questionnaires and recommending exercises.",
-            height=100,
-            help="Summary of the proposed system methodology, target users, and technology stack."
+    # ---------------------------------------------------------
+    # Student Module 1: AI Project Advisor & Ideator
+    # ---------------------------------------------------------
+    if student_nav == "💬 AI Project Advisor & Ideator":
+        render_hero_header(
+            icon="💬",
+            title="AI Project Advisor & Novel Ideator",
+            subtitle="Engage with the conversational engineering advisor or synthesize tailored capstone project proposals grounded in institutional research gaps.",
+            badges=[
+                ("🤖 Conversational LLM Guidance", "meta-pill-blue")
+            ]
         )
 
-    check_btn = st.button("🛡️ Assess Originality & Redundancy Risk", type="primary", help="Trigger semantic similarity scan across historical reports.")
+        tab_chat, tab_ideator = st.tabs(["💬 AI Project Advisor", "💡 Novel Idea Generator"])
 
-    if check_btn:
-        with st.spinner("Analyzing semantic overlap across historical project corpus..."):
-            dup_res = detector.check_originality(title=test_title, abstract=test_abstract, top_k=5)
+        # Tab 1: Conversational Chat
+        with tab_chat:
+            st.markdown(
+                '<p style="font-size: 0.88rem; font-weight: 700; color: #344054; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.35rem;">'
+                '<span>⚡</span> <span>Quick Research Inquiries (Click to ask):</span></p>',
+                unsafe_allow_html=True
+            )
+            st.markdown('<div id="prompt-chips-wrapper"></div>', unsafe_allow_html=True)
+            q1, q2, q3 = st.columns(3)
+            q4, q5, q6 = st.columns(3)
 
-        st.markdown("---")
-        res_col1, res_col2 = st.columns([1, 2])
+            selected_prompt = None
+            with q1:
+                if st.button("🌾 Agriculture Hardware Limits\nSensor, MCU & battery constraints", key="chip_1", use_container_width=True):
+                    selected_prompt = "What hardware, sensor, and battery limitations were reported in past Smart Agriculture IoT projects?"
+            with q2:
+                if st.button("🩺 Healthcare DL Architectures\nCNN, ResNet & medical datasets", key="chip_2", use_container_width=True):
+                    selected_prompt = "Which deep learning architectures (e.g. CNNs, ResNet) and datasets were used in healthcare and medical diagnosis projects?"
+            with q3:
+                if st.button("🔐 Blockchain Latency & Gas\nTransaction throughput & costs", key="chip_3", use_container_width=True):
+                    selected_prompt = "How did past blockchain and smart contract projects address transaction latency, security, and gas fee constraints?"
+            with q4:
+                if st.button("🤖 NLP Gaps in CS & DS\nTransformer & BERT limitations", key="chip_4", use_container_width=True):
+                    selected_prompt = "What are the most common unaddressed research gaps and future scope items across NLP projects?"
+            with q5:
+                if st.button("📊 Compare CS vs DS Methods\nMethodologies & benchmark metrics", key="chip_5", use_container_width=True):
+                    selected_prompt = "Compare the technical methodologies and evaluation metrics between Computer Science (CS) and Data Science (DS) projects."
+            with q6:
+                if st.button("💡 Novel Capstone Ideation\nSynthesize project from past gaps", key="chip_6", use_container_width=True):
+                    selected_prompt = "Based on the limitations of past student projects, synthesize a novel capstone project proposal with technical stack and evaluation metrics."
 
-        with res_col1:
-            st.subheader("Verdict & Risk Assessment")
-            max_pct = dup_res["max_similarity_pct"]
-            orig_score = dup_res["originality_score"]
-
-            fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=orig_score,
-                domain={'x': [0, 1], 'y': [0, 1]},
-                title={'text': "Originality Score", 'font': {'size': 18, 'color': '#1e293b'}},
-                gauge={
-                    'axis': {'range': [0, 100], 'tickcolor': '#334155'},
-                    'bar': {'color': "#6366f1"},
-                    'steps': [
-                        {'range': [0, 35], 'color': "#fee2e2"},
-                        {'range': [35, 70], 'color': "#fef3c7"},
-                        {'range': [70, 100], 'color': "#dcfce7"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "#b91c1c", 'width': 4},
-                        'thickness': 0.75,
-                        'value': 35
+            # Session State for Chat
+            if "rag_chat_history" not in st.session_state:
+                st.session_state.rag_chat_history = [
+                    {
+                        "role": "assistant",
+                        "content": (
+                            "👋 **Welcome to the Project-IQ AI Engineering Advisor!**\n\n"
+                            f"I have synthesized intelligence across **{db_count:,} canonical project passages** from past Computer Science and Data Science cohorts.\n\n"
+                            "Ask me **any technical question**—from architecture trade-offs (e.g. YOLO vs MobileNet on microcontrollers, SQL vs NoSQL for telemetry), "
+                            "to benchmark targets, dataset constraints, and methodology structuring.\n\n"
+                            "*Click one of the quick prompt cards above or type your question below!*"
+                        ),
+                        "engine": "System Greeting"
                     }
-                }
-            ))
-            fig_gauge.update_layout(height=240, margin=dict(t=20, b=10, l=20, r=20))
-            st.plotly_chart(fig_gauge, use_container_width=True)
+                ]
 
-            if dup_res["verdict_level"] == "danger":
-                st.error(f"🔴 **[HIGH REDUNDANCY DETECTED]** ({max_pct}% historical similarity)")
-            elif dup_res["verdict_level"] == "warning":
-                st.warning(f"🟡 **[MODERATE OVERLAP]** ({max_pct}% historical similarity)")
-            else:
-                st.success(f"🟢 **[HIGH ORIGINALITY VERIFIED]** ({orig_score}% Novelty Rating)")
+            if len(st.session_state.rag_chat_history) > 1:
+                c_rst1, c_rst2 = st.columns([6, 1])
+                with c_rst2:
+                    if st.button("🗑️ Reset Chat", use_container_width=True):
+                        st.session_state.rag_chat_history = [st.session_state.rag_chat_history[0]]
+                        st.rerun()
 
-            st.markdown(f'<div class="callout-box" role="status" aria-live="polite">{dup_res["warning_message"]}</div>', unsafe_allow_html=True)
+            # Render Chat Messages (Clean, without raw document card leaks)
+            for msg in st.session_state.rag_chat_history:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+                    if msg.get("engine") and msg["engine"] != "System Greeting":
+                        st.markdown(
+                            f'<div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; background: #E4E7EC; border: 1px solid #D0D5DD; border-radius: 6px; font-size: 0.74rem; color: #667085; margin-top: 0.4rem;">'
+                            f'<span>⚙️</span> <span>Synthesized via <strong style="color: #4F46E5;">{safe_html(msg["engine"])}</strong></span>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
 
-        with res_col2:
-            st.subheader("📚 Closest Historical Projects in Archive")
-            matches = dup_res.get("matching_projects", [])
-            if matches:
-                for idx, m in enumerate(matches, 1):
-                    with st.container():
-                        st.markdown(f"**{idx}. [{m['department']} / {m['group_id']}] {m['source_file']}** — Similarity: `{m['similarity_pct']}%`")
-                        st.markdown(f"*Category:* `{m['category']}` | *Section:* `{m['section']}`")
-                        st.write(f"> \"{m['excerpt']}\"")
-                        st.markdown("---")
-            else:
-                st.info("No matching historical projects found.")
+            # Chat Input
+            user_input = st.chat_input("Ask about architectures, ML models, IoT hardware, database trade-offs...")
+            active_query = selected_prompt or user_input
 
-# -------------------------------------------------------------
-# Module 4: Research Gap Miner & Novel Ideation Engine
-# -------------------------------------------------------------
-elif view_mode == "💡 Research Gap Miner & Novel Ideator":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">💡 Research Gap Miner & Novel Project Ideator</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Mines technical limitations in past student projects and synthesizes novel, high-scoring final year project proposals with grounded citations.</div>', unsafe_allow_html=True)
+            if active_query:
+                st.session_state.rag_chat_history.append({"role": "user", "content": active_query})
+                with st.chat_message("user"):
+                    st.markdown(active_query)
 
-    col_g1, col_g2, col_g3 = st.columns([2, 1, 1])
-    with col_g1:
-        domain_sel = st.selectbox("Focus Engineering Domain", ["All Domains"] + list(DOMAIN_TAXONOMY.keys()))
-    with col_g2:
-        num_prop = st.slider("Number of Proposals", min_value=1, max_value=5, value=2)
-    with col_g3:
-        st.write("")
-        st.write("")
-        gen_btn = st.button("🚀 Synthesize Novel Proposals", type="primary", use_container_width=True)
+                with st.chat_message("assistant"):
+                    with st.spinner("Synthesizing engineering advice across repository intelligence..."):
+                        try:
+                            result = rag_chat.ask(
+                                question=active_query,
+                                chat_history=[{"role": m["role"], "content": m["content"]} for m in st.session_state.rag_chat_history[:-1]],
+                                n_results=6
+                            )
+                        except Exception as ex:
+                            logger.error(f"RAG execution exception: {ex}")
+                            result = {
+                                "answer": f"⚠️ An error occurred during synthesis: {safe_html(str(ex))}. Please try rephrasing your technical inquiry.",
+                                "engine_used": "Error Fallback"
+                            }
 
-    proposals_file = config.reports_dir / "novel_project_proposals.json"
-    proposals = []
+                        st.markdown(result["answer"])
+                        st.markdown(
+                            f'<div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; background: #E4E7EC; border: 1px solid #D0D5DD; border-radius: 6px; font-size: 0.74rem; color: #667085; margin-top: 0.4rem;">'
+                            f'<span>⚙️</span> <span>Synthesized via <strong style="color: #4F46E5;">{safe_html(result["engine_used"])}</strong></span>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
 
-    if gen_btn:
-        with st.spinner("Extracting technical gaps and generating grounded novel proposals..."):
-            domain_arg = None if domain_sel == "All Domains" else domain_sel
-            proposals = gap_analyzer.generate_novel_projects(domain_filter=domain_arg, num_proposals=num_prop)
-    elif proposals_file.exists():
-        try:
-            proposals = json.loads(proposals_file.read_text(encoding="utf-8"))
-        except Exception:
-            proposals = []
+                        st.session_state.rag_chat_history.append({
+                            "role": "assistant",
+                            "content": result["answer"],
+                            "engine": result["engine_used"]
+                        })
+                        st.rerun()
 
-    if proposals:
-        st.markdown(f"### 📋 Synthesized Project Proposals ({len(proposals)})")
-        for i, p in enumerate(proposals, 1):
-            with st.container():
-                st.markdown(f"### {i}. {p.get('title')}")
-                st.markdown(f"**Domain:** `{p.get('domain')}` | **Feasibility Score:** `{p.get('feasibility_score', 8)}/10`")
+        # Tab 2: Novel Idea Generator
+        with tab_ideator:
+            st.markdown("#### 💡 Customized Capstone Proposal Generator")
+            st.markdown("Generate unique, viable capstone proposals tailored to your specific engineering domain, target stack, or problem interest.")
 
-                tab_p1, tab_p2, tab_p3 = st.tabs(["📌 Problem & Innovation", "🛠️ Architecture & Tech Stack", "📚 Grounded Past Project Citations"])
-                with tab_p1:
-                    st.markdown(f"**Problem Statement:** {p.get('problem_statement')}")
-                    st.markdown(f"**Core Innovation:** {p.get('core_innovation')}")
-                with tab_p2:
-                    st.markdown(f"**Proposed Methodology:** {p.get('proposed_methodology')}")
-                    stack = p.get("tech_stack", [])
-                    st.markdown("**Recommended Stack:** " + ", ".join(f"`{s}`" for s in stack))
-                    deliv = p.get("expected_deliverables", [])
-                    if deliv:
-                        st.markdown("**Expected Deliverables:**")
-                        for d in deliv:
-                            st.markdown(f"- {d}")
-                with tab_p3:
-                    citations = p.get("past_project_citations", [])
-                    if citations:
-                        for cite in citations:
-                            st.markdown(f"- **Source:** `{cite.get('source_file')}`")
-                            st.write(f"  *Identified Limitation:* {cite.get('identified_gap')}")
+            col_ig1, col_ig2 = st.columns([1, 1])
+            with col_ig1:
+                idea_domain = st.selectbox("Focus Engineering Domain", ["All Domains"] + list(DOMAIN_TAXONOMY.keys()), key="idea_domain_sel")
+                idea_interest = st.text_input("Specific Problem Focus / Interest (optional)", placeholder="e.g. Edge crop pathology, Federated privacy, Low-power IoT")
+            with col_ig2:
+                idea_stack = st.text_input("Target Tech Stack (optional)", placeholder="e.g. PyTorch, ONNX, FastAPI, Docker, Raspberry Pi")
+                idea_count = st.slider("Number of Proposals to Generate", min_value=1, max_value=5, value=2, key="idea_cnt_slider")
+
+            gen_idea_btn = st.button("🚀 Generate Tailored Novel Proposals", type="primary", use_container_width=True)
+
+            if gen_idea_btn:
+                with st.spinner("Mining unaddressed repository gaps and synthesizing novel proposals..."):
+                    dom_arg = None if idea_domain == "All Domains" else idea_domain
+                    if idea_interest.strip():
+                        filter_query = f"{dom_arg or ''} {idea_interest.strip()} {idea_stack.strip()}".strip()
                     else:
-                        st.info("General institutional synthesis.")
-                st.markdown("---")
+                        filter_query = dom_arg
 
-        # Export as JSON
-        st.download_button(
-            label="📥 Download Proposals JSON Report",
-            data=json.dumps(proposals, indent=2),
-            file_name="project_iq_novel_proposals.json",
-            mime="application/json"
+                    generated_proposals = gap_analyzer.generate_novel_projects(
+                        domain_filter=filter_query,
+                        num_proposals=idea_count
+                    )
+                    st.session_state["tailored_proposals"] = generated_proposals
+
+            tailored_props = st.session_state.get("tailored_proposals", [])
+            if tailored_props:
+                st.markdown(f"### 📋 Tailored Novel Proposals ({len(tailored_props)})")
+                for i, p in enumerate(tailored_props, 1):
+                    feasibility = p.get('feasibility_score', 8)
+                    f_pill = "tag-green" if feasibility >= 8 else ("tag-amber" if feasibility >= 6 else "tag-red")
+                    st.markdown(
+                        f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 12px; padding: 1.25rem 1.4rem; margin-bottom: 1.25rem; box-shadow: 0 4px 14px rgba(16, 24, 40, 0.06);">'
+                        f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.35rem;">'
+                        f'<span style="font-size: 1.2rem; font-weight: 800; color: #1A1F2B;">{i}. {safe_html(p.get("title"))}</span>'
+                        f'<div>'
+                        f'<span class="tag tag-blue">Domain: {safe_html(p.get("domain"))}</span>'
+                        f'<span class="tag {f_pill}">Feasibility: {feasibility}/10</span>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    t_p1, t_p2, t_p3 = st.tabs(["📌 Problem & Innovation", "🛠️ Architecture & Tech Stack", "🔬 Addressed Gaps & Novelty Edge"])
+                    with t_p1:
+                        st.markdown(f"**Problem Statement:**\n\n{p.get('problem_statement')}")
+                        st.markdown(
+                            f'<div class="callout-box">'
+                            f'<strong style="color: #4F46E5;">💡 Core Innovation:</strong> {safe_html(p.get("core_innovation"))}'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+                    with t_p2:
+                        st.markdown(f"**Proposed Methodology:**\n\n{p.get('proposed_methodology')}")
+                        stack = p.get("tech_stack", [])
+                        st.markdown("**Recommended Stack:** " + " ".join(f'<span class="tag tag-slate">{safe_html(s)}</span>' for s in stack), unsafe_allow_html=True)
+                        deliv = p.get("expected_deliverables", [])
+                        if deliv:
+                            st.markdown("**Expected Deliverables:**")
+                            for d in deliv:
+                                st.markdown(f"- ✅ {safe_html(d)}")
+                    with t_p3:
+                        citations = p.get("past_project_citations", [])
+                        if citations:
+                            for cite in citations:
+                                st.markdown(
+                                    f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;">'
+                                    f'<div style="font-size: 0.84rem; color: #344054;"><strong style="color: #f87171;">Tackled Limitation:</strong> {safe_html(cite.get("identified_gap"))}</div>'
+                                    f'</div>',
+                                    unsafe_allow_html=True
+                                )
+                        else:
+                            st.info("Direct synthesis based on institutional domain limitations.")
+
+                st.download_button(
+                    label="📥 Download Tailored Proposals JSON",
+                    data=json.dumps(tailored_props, indent=2),
+                    file_name="tailored_capstone_proposals.json",
+                    mime="application/json"
+                )
+
+    # ---------------------------------------------------------
+    # Student Module 2: Originality & Duplicate Checker
+    # ---------------------------------------------------------
+    elif student_nav == "🛡️ Originality & Duplicate Checker":
+        render_hero_header(
+            icon="🛡️",
+            title="Project Originality & Redundancy Guard",
+            subtitle="Screen proposed capstone concepts against historical institutional repositories to detect duplicate ideas, summarize conceptual overlaps in brief, and safeguard academic novelty.",
+            badges=[
+                ("🛡️ Redundancy Guard", "meta-pill-red")
+            ]
         )
 
-# -------------------------------------------------------------
-# Module 5: Explainable ML Quality Scorer (Feature 6 in Paper)
-# -------------------------------------------------------------
-elif view_mode == "⚖️ Explainable ML Quality Scorer":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">⚖️ Explainable ML Quality Scorer & Rubric Advisor</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Pre-submission quality evaluation predicting project marks and generating SHAP-style explainable improvement tips.</div>', unsafe_allow_html=True)
-
-    col_q1, col_q2 = st.columns(2)
-    with col_q1:
-        prop_title = st.text_input(
-            "Project Proposal Title",
-            "Federated Learning Framework with Differential Privacy for Edge Healthcare",
-            help="Tentative title for rubric evaluation."
-        )
-        prop_prob = st.text_area(
-            "Problem Statement",
-            "Centralized clinical data aggregation introduces severe patient data privacy violations and communication latency bottlenecks.",
-            height=90,
-            help="Core problem formulation."
-        )
-    with col_q2:
-        prop_meth = st.text_area(
-            "Proposed Methodology",
-            "1. Client node local model training on decentralized scans. 2. Secure federated aggregation using FedAvg with DP noise. 3. Target latency < 45ms with 94.8% classification accuracy [1]. 4. Containerized evaluation pipeline.",
-            height=110,
-            help="Methodology with phases and target benchmarks."
-        )
-        prop_stack = st.text_input(
-            "Tech Stack (comma-separated)",
-            "Python, PyTorch, Flower, FastAPI, Docker, Streamlit",
-            help="Technologies planned for development and deployment."
-        )
-
-    score_btn = st.button("⚖️ Run Explainable ML Quality Evaluation", type="primary")
-
-    if score_btn:
-        with st.spinner("Extracting rubric features and computing SHAP attributions..."):
-            score_res = scorer.score_proposal(
-                title=prop_title,
-                problem_statement=prop_prob,
-                proposed_methodology=prop_meth,
-                tech_stack=prop_stack,
-                citations=["VASWANI_2017", "PROJECT_REPORT_REF"]
+        col_in1, col_in2 = st.columns([1, 1])
+        with col_in1:
+            test_title = st.text_input(
+                "Proposed Project Title",
+                "Acupoint Therapy and Symptom Management Android Application",
+                help="Tentative title of the proposed student project."
+            )
+        with col_in2:
+            test_abstract = st.text_area(
+                "Proposed Project Abstract / Summary",
+                "An AI-powered Android mobile app developed with Firebase for musculoskeletal pain relief, guiding patients through questionnaires and recommending exercises.",
+                height=100,
+                help="Summary of the proposed system methodology, target users, and technology stack."
             )
 
-        st.markdown("---")
-        sc_col1, sc_col2 = st.columns([1, 2])
+        check_btn = st.button("🛡️ Assess Originality & Redundancy Risk", type="primary")
 
-        with sc_col1:
-            st.subheader("Rubric Evaluation Signal")
-            overall = score_res["overall_score"]
-            stars = score_res["star_rating"]
-            tier = score_res["readiness_tier"]
+        if check_btn:
+            with st.spinner("Analyzing semantic overlap and generating executive brief..."):
+                dup_res = detector.check_originality(title=test_title, abstract=test_abstract, top_k=5)
 
-            st.metric("Overall Score", f"{overall}/100", help="Predicted composite marks out of 100 based on faculty rubric.")
-            st.metric("Star Rating", f"{stars} / 5.0 ⭐", help="Normalized 5-star rubric rating.")
-            if "Approved" in tier:
-                st.success(f"✅ **[APPROVED]** {tier}")
-            elif "Revision" in tier:
-                st.warning(f"⚠️ **[REVISION NEEDED]** {tier}")
-            else:
-                st.error(f"❌ **[CRITICAL GAPS]** {tier}")
+            st.markdown('<div style="margin: 1.25rem 0 0.75rem 0; border-top: 1px solid #E4E7EC;"></div>', unsafe_allow_html=True)
+            res_col1, res_col2 = st.columns([1, 2])
 
-        with sc_col2:
-            st.subheader("📊 SHAP Feature Attribution Breakdown")
-            shaps = score_res["shap_attributions"]
-            df_shap = pd.DataFrame([
-                {"Feature": k.replace("_", " ").title(), "Contribution": v}
-                for k, v in shaps.items()
-            ])
-            df_shap["Color"] = df_shap["Contribution"].apply(lambda x: "#059669" if x >= 0 else "#b91c1c")
+            with res_col1:
+                st.markdown("#### Verdict & Originality Score")
+                max_pct = dup_res["max_similarity_pct"]
+                orig_score = dup_res["originality_score"]
 
-            fig_shap = px.bar(
-                df_shap,
-                x="Contribution",
-                y="Feature",
-                orientation="h",
-                color="Color",
-                color_discrete_map="identity"
-            )
-            fig_shap.update_layout(
-                xaxis_title="SHAP Attribution (Deviation from Rubric Baseline)",
-                yaxis=dict(autorange="reversed"),
-                height=260,
-                margin=dict(t=10, b=10, l=10, r=10)
-            )
-            st.plotly_chart(fig_shap, use_container_width=True)
-            st.caption("Figure 5: Explainable SHAP attributions illustrating which rubric criteria boosted or penalized the score.")
+                fig_gauge = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=orig_score,
+                    domain={'x': [0, 1], 'y': [0, 1]},
+                    title={'text': "Originality Score (%)", 'font': {'size': 16, 'color': '#1A1F2B', 'family': 'Inter, sans-serif'}},
+                    number={'font': {'size': 36, 'color': '#1A1F2B', 'family': 'Inter, sans-serif'}, 'valueformat': '.1f', 'suffix': '%'},
+                    gauge={
+                        'axis': {'range': [0, 100], 'tickcolor': '#667085', 'tickwidth': 1.5, 'tickfont': {'color': '#667085', 'size': 11}},
+                        'bar': {'color': "#4F46E5", 'thickness': 0.28},
+                        'bgcolor': "#FFFFFF",
+                        'borderwidth': 1,
+                        'bordercolor': "#D0D5DD",
+                        'steps': [
+                            {'range': [0, 35], 'color': "rgba(239, 68, 68, 0.25)"},
+                            {'range': [35, 70], 'color': "rgba(245, 158, 11, 0.25)"},
+                            {'range': [70, 100], 'color': "rgba(16, 185, 129, 0.25)"}
+                        ],
+                        'threshold': {
+                            'line': {'color': "#ef4444", 'width': 3},
+                            'thickness': 0.75,
+                            'value': 35
+                        }
+                    }
+                ))
+                apply_plotly_theme(fig_gauge, height=250)
+                st.plotly_chart(fig_gauge, use_container_width=True)
 
-        st.subheader("💡 Actionable Improvement Advice")
-        for advice in score_res["actionable_advice"]:
-            st.info(f"👉 {advice}")
+                if dup_res["verdict_level"] == "danger":
+                    st.markdown(
+                        f'<div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-left: 5px solid #ef4444; border-radius: 8px; padding: 0.9rem; margin-bottom: 0.75rem;">'
+                        f'<div style="font-weight: 800; color: #fca5a5; font-size: 0.96rem; display: flex; align-items: center; gap: 0.35rem;">'
+                        f'<span>🔴</span> <span>HIGH REDUNDANCY DETECTED ({max_pct:.1f}% Historical Similarity)</span>'
+                        f'</div>'
+                        f'<p style="margin: 0.35rem 0 0 0; color: #fecaca; font-size: 0.85rem; line-height: 1.5;">{safe_html(dup_res["warning_message"])}</p>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                elif dup_res["verdict_level"] == "warning":
+                    st.markdown(
+                        f'<div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-left: 5px solid #f59e0b; border-radius: 8px; padding: 0.9rem; margin-bottom: 0.75rem;">'
+                        f'<div style="font-weight: 800; color: #fcd34d; font-size: 0.96rem; display: flex; align-items: center; gap: 0.35rem;">'
+                        f'<span>🟡</span> <span>MODERATE OVERLAP ({max_pct:.1f}% Historical Similarity)</span>'
+                        f'</div>'
+                        f'<p style="margin: 0.35rem 0 0 0; color: #fef3c7; font-size: 0.85rem; line-height: 1.5;">{safe_html(dup_res["warning_message"])}</p>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f'<div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-left: 5px solid #10b981; border-radius: 8px; padding: 0.9rem; margin-bottom: 0.75rem;">'
+                        f'<div style="font-weight: 800; color: #6ee7b7; font-size: 0.96rem; display: flex; align-items: center; gap: 0.35rem;">'
+                        f'<span>🟢</span> <span>HIGH ORIGINALITY VERIFIED ({orig_score:.1f}% Novelty Rating)</span>'
+                        f'</div>'
+                        f'<p style="margin: 0.35rem 0 0 0; color: #d1fae5; font-size: 0.85rem; line-height: 1.5;">{safe_html(dup_res["warning_message"])}</p>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
 
-# -------------------------------------------------------------
-# Module 6: Student Team Expertise & Domain Matcher
-# -------------------------------------------------------------
-elif view_mode == "👥 Student Team Domain Matcher":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">👥 Student Team Expertise Profiler & Domain Matcher</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Evaluates student team skillsets against domain taxonomies to recommend optimal project directions and highlight skill gaps.</div>', unsafe_allow_html=True)
+            with res_col2:
+                st.markdown("#### 📋 Executive Synthesized Brief")
+                st.markdown(
+                    f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 1rem;">'
+                    f'<h5 style="margin: 0 0 0.5rem 0; color: #4F46E5; font-weight: 700;">Conceptual Overlap Summary:</h5>'
+                    f'<p style="margin: 0; font-size: 0.92rem; color: #344054; line-height: 1.6;">{safe_html(dup_res.get("executive_summary", ""))}</p>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
 
-    col_m1, col_m2 = st.columns(2)
-    with col_m1:
-        team_skills_str = st.text_area(
-            "Team Programming Languages, Frameworks & Hardware Skills",
-            "Python, PyTorch, OpenCV, Flask, Docker, CNN, Computer Vision",
-            height=100,
-            help="List skills separated by commas."
-        )
-    with col_m2:
-        team_interests_str = st.text_area(
-            "Target Project Interests / Elective Areas (optional)",
-            "Healthcare Diagnostics, Medical Imaging, Automated Disease Classification",
-            height=100,
-            help="Optional elective interests or industry preferences."
-        )
-
-    match_btn = st.button("🎯 Match Team to Optimal Domains", type="primary")
-
-    if match_btn:
-        skills = [s.strip() for s in re.split(r"[,;\n]+", team_skills_str) if s.strip()]
-        interests = [i.strip() for i in re.split(r"[,;\n]+", team_interests_str) if i.strip()]
-
-        with st.spinner("Computing team skillset embeddings and domain affinity vectors..."):
-            team_res = matcher.evaluate_team(skills=skills, interests=interests, top_k=4)
-
-        st.subheader("🏆 Ranked Domain Recommendations")
-        for i, d in enumerate(team_res["top_domains"], 1):
-            with st.container():
-                m_col1, m_col2 = st.columns([3, 1])
-                with m_col1:
-                    st.markdown(f"#### {i}. {d['domain']}")
-                    st.write(d['description'])
-                    st.markdown(f"**Matched Competencies:** {', '.join(d['matched_skills']) if d['matched_skills'] else 'Semantic affinity'}")
-                    if d['suggested_to_learn']:
-                        st.markdown("💡 **Skills to Learn to Excel in this Domain:** " + ", ".join(f"`{k}`" for k in d['suggested_to_learn']))
-                with m_col2:
-                    st.metric("Domain Match", f"{d['match_percentage']}%")
-                    readiness = d['team_readiness']
-                    if readiness == "High":
-                        st.success(f"Readiness: **[HIGH]**")
-                    elif readiness == "Moderate":
-                        st.warning(f"Readiness: **[MODERATE]**")
-                    else:
-                        st.error(f"Readiness: **[LOW]**")
-                st.markdown("---")
-
-# -------------------------------------------------------------
-# Module 7: Ingestion & Privacy Audit Center
-# -------------------------------------------------------------
-elif view_mode == "⚙️ Ingestion & Privacy Audit Center":
-    st.markdown('<div class="main-header" role="heading" aria-level="1">⚙️ Data Ingestion & Privacy Sanitization Center</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Upload new documents, inspect privacy audit metrics, and monitor pipeline operations.</div>', unsafe_allow_html=True)
-
-    tab_adm1, tab_adm2 = st.tabs(["📤 Upload New Project Documents", "🛡️ Privacy Sanitization Audit Log"])
-
-    with tab_adm1:
-        st.subheader("Upload Academic Project Files")
-        st.markdown("Supported formats: `.pdf` (Blackbooks), `.pptx` (Presentations), `.docx` (Synopses, Research Papers).")
-
-        target_dept = st.selectbox("Assign to Department", ["CS_1", "CS_2", "DS_1", "DS_2", "General"])
-        target_group = st.text_input("Assign to Group ID", "Group 14")
-        target_category = st.selectbox("Document Category", ["Black Book", "Review 4", "synopsis", "Research Paper", "Abstract"])
-
-        uploaded_files = st.file_uploader(
-            "Choose files",
-            type=["pdf", "pptx", "docx", "doc"],
-            accept_multiple_files=True,
-            help="Files uploaded here will be organized into the college directory structure."
-        )
-
-        if uploaded_files:
-            upload_dest = config.raw_dir / target_dept / target_group / target_category
-            upload_dest.mkdir(parents=True, exist_ok=True)
-            for f in uploaded_files:
-                save_path = upload_dest / f.name
-                save_path.write_bytes(f.getvalue())
-                st.success(f"Saved: `{f.name}` to `{save_path}`")
-            st.info("Files saved to raw directory. Run `python run_pipeline.py` to index newly uploaded files into ChromaDB.")
-
-    with tab_adm2:
-        st.subheader("🛡️ PII Redaction Telemetry")
-        if rep_data:
-            redactions = rep_data.get("total_redactions", {})
-            r1, r2, r3, r4, r5 = st.columns(5)
-            r1.metric("Local Names", f"{redactions.get('local_name', 0):,}", help="Student and supervisor names masked with [NAME]")
-            r2.metric("Phone Numbers", f"{redactions.get('phone', 0):,}", help="Phone numbers masked with [PHONE]")
-            r3.metric("Student PRNs / IDs", f"{redactions.get('student_id', 0):,}", help="Institutional IDs masked with [STUDENT_ID]")
-            r4.metric("Personal Emails", f"{redactions.get('email', 0):,}", help="Personal and academic emails masked with [EMAIL]")
-            r5.metric("Credentials", f"{redactions.get('credential', 0):,}", help="API keys and secrets masked with [REDACTED_CREDENTIAL]")
-
-            st.markdown("---")
-            st.markdown("""
-            **Sanitization Protocols Applied:**
-            - **Administrative Front-Matter:** Certificates of completion, candidate declarations, acknowledgments, and plagiarism reports are automatically filtered prior to vectorization.
-            - **PII Masking:** Student phone numbers, email addresses, institutional roll/PRN numbers, and local guide/student names (discovered via context cues + spaCy Named Entity Recognition) are replaced with deterministic tags (`[NAME]`, `[STUDENT_ID]`, `[PHONE]`, `[EMAIL]`).
-            - **Scholarly Preservation:** Academic literature citations (e.g. `[1]`, `[2]`, `Vaswani et al. (2017)`) in Literature Review and Reference sections are preserved intact for accurate RAG synthesis.
-            """)
+                st.markdown("#### 💡 Actionable Differentiation Recommendations")
+                recommendations = dup_res.get("differentiation_recommendations", [])
+                for rec in recommendations:
+                    st.markdown(
+                        f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-left: 4px solid #4F46E5; border-radius: 8px; padding: 0.85rem 1.1rem; margin-bottom: 0.6rem; font-size: 0.88rem; color: #344054;">'
+                        f'👉 {safe_html(rec)}'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
         else:
-            st.info("No cleaning report found. Execute pipeline to generate audit data.")
+            st.markdown(
+                '<div class="callout-box">'
+                '<strong style="color: #4F46E5;">🛡️ Originality Screening:</strong> Enter your tentative project title and abstract summary, then click <strong>Assess Originality & Redundancy Risk</strong>. '
+                'The system evaluates semantic overlap across the institutional repository and generates an executive brief with actionable technical recommendations to differentiate your capstone.'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+    # ---------------------------------------------------------
+    # Student Module 3: Standalone Research Gap Finder
+    # ---------------------------------------------------------
+    elif student_nav == "🔬 Research Gap Finder":
+        render_hero_header(
+            icon="🔬",
+            title="Institutional Research Gap Finder",
+            subtitle="Explore unaddressed technical limitations, hardware bottlenecks, and future scope items mined across historical college projects.",
+            badges=[
+                ("🔬 Limitation Mining", "meta-pill-blue")
+            ]
+        )
+
+        col_f1, col_f2, col_f3 = st.columns([1, 1, 1])
+        with col_f1:
+            gap_domain_sel = st.selectbox("Filter Domain", ["All Domains"] + list(DOMAIN_TAXONOMY.keys()))
+        with col_f2:
+            gap_sec_sel = st.selectbox("Section Focus", ["ALL", "FUTURE SCOPE", "CONCLUSION", "RESULTS", "METHODOLOGY"])
+        with col_f3:
+            gap_search_term = st.text_input("Search Limitation Keywords", placeholder="e.g. latency, battery, accuracy, dataset, edge")
+
+        with st.spinner("Extracting recurring limitations and research gaps..."):
+            extracted_gaps = gap_analyzer.extract_project_gaps(top_k_per_section=15)
+
+        # Apply Filters
+        filtered_gaps = extracted_gaps
+        if gap_sec_sel != "ALL":
+            filtered_gaps = [g for g in filtered_gaps if g.get("section") == gap_sec_sel]
+        if gap_search_term.strip():
+            sterm = gap_search_term.strip().lower()
+            filtered_gaps = [g for g in filtered_gaps if sterm in g.get("text", "").lower() or any(sterm in ind for ind in g.get("matched_indicators", []))]
+
+        st.markdown(f"### 📊 Identified Research Gaps ({len(filtered_gaps)} Passages Mined)")
+
+        # Limitation Indicators Overview
+        all_indicators = []
+        for g in filtered_gaps:
+            all_indicators.extend(g.get("matched_indicators", []))
+
+        if all_indicators:
+            ind_counts = pd.Series(all_indicators).value_counts().head(8).reset_index()
+            ind_counts.columns = ["Limitation Indicator", "Frequency"]
+            fig_ind = px.bar(
+                ind_counts,
+                x="Frequency",
+                y="Limitation Indicator",
+                orientation="h",
+                color_discrete_sequence=["#4F46E5"]
+            )
+            fig_ind.update_traces(marker_line_width=0)
+            apply_plotly_theme(fig_ind, height=260)
+            fig_ind.update_layout(yaxis=dict(autorange="reversed"))
+            st.plotly_chart(fig_ind, use_container_width=True)
+            st.caption("Figure: Most frequent technical bottlenecks and limitation markers identified across past reports.")
+
+        # Render Gap Cards
+        for idx, g in enumerate(filtered_gaps[:12], 1):
+            indicators_html = " ".join(f'<span class="tag tag-amber">{safe_html(ind)}</span>' for ind in g.get("matched_indicators", []))
+            clean_gap_text = re.sub(r'\[NAME\]|\[STUDENT_ID\]|\[PHONE\]|\[EMAIL\]', '', g.get("text", "")).strip()
+            summary_gap = clean_gap_text[:280] + ("..." if len(clean_gap_text) > 280 else "")
+
+            st.markdown(
+                f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 0.85rem; box-shadow: 0 2px 6px rgba(16, 24, 40, 0.06);">'
+                f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.35rem;">'
+                f'<span style="font-weight: 700; color: #4F46E5; font-size: 0.92rem;">#{idx} Section: {safe_html(g.get("section"))}</span>'
+                f'<div>{indicators_html}</div>'
+                f'</div>'
+                f'<p style="margin: 0 0 0.6rem 0; font-size: 0.88rem; color: #344054; line-height: 1.55;">"{safe_html(summary_gap)}"</p>'
+                f'<div style="background: #F7F8FA; border-left: 3px solid #12B76A; border-radius: 4px; padding: 0.5rem 0.8rem; font-size: 0.82rem; color: #067647;">'
+                f'<strong>💡 Innovation Opportunity:</strong> Address this limitation by incorporating hardware-accelerated quantization, synthetic dataset expansion, or cross-domain validation.'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+    # ---------------------------------------------------------
+    # Student Module 4: Project Quality Scorer
+    # ---------------------------------------------------------
+    elif student_nav == "⚖️ Project Quality Scorer":
+        render_hero_header(
+            icon="⚖️",
+            title="Engineering Quality Scorer & Technical Evaluator",
+            subtitle="Pre-submission quality evaluation measuring architecture depth, metric rigor, and technical feasibility.",
+            badges=[
+                ("⚖️ Multi-Dimensional Scoring", "meta-pill-blue")
+            ]
+        )
+
+        col_q1, col_q2 = st.columns(2)
+        with col_q1:
+            prop_title = st.text_input(
+                "Project Topic / Title",
+                "Edge-Optimized CNN for Real-Time Plant Pathology",
+                help="Full tentative title of the proposed student project."
+            )
+            prop_domain = st.selectbox(
+                "Primary Engineering Domain",
+                ["Computer Vision & Healthcare", "Smart Agriculture & IoT", "Cloud & Distributed Systems", "Cybersecurity & Blockchain", "NLP & Intelligent Systems", "Data Science & Analytics"]
+            )
+            prop_prob = st.text_area(
+                "Problem Statement",
+                "Existing crop pathology models suffer from severe inference latency bottlenecks and high energy consumption on embedded edge devices.",
+                height=90,
+                help="Core technical problem statement being addressed."
+            )
+        with col_q2:
+            prop_meth = st.text_area(
+                "Proposed Methodology & Architecture",
+                "1. Collect crop images. 2. Quantize ResNet model via ONNX runtime. 3. Deploy on Raspberry Pi with sub-40ms latency and 96.2% accuracy [1]. 4. Containerized verification pipeline.",
+                height=110,
+                help="Methodology with phases, target benchmarks, and pipeline stages."
+            )
+            prop_stack = st.text_input(
+                "Tech Stack (comma-separated)",
+                "PyTorch, ONNX, FastAPI, Docker, Raspberry Pi",
+                help="Technologies planned for development, training, and deployment."
+            )
+
+        with st.expander("📄 Optional: Upload or Paste Draft Document / Synopsis", expanded=False):
+            up_doc = st.file_uploader("Upload Draft Document (.txt, .pdf, .docx)", type=["txt", "pdf", "docx"])
+            pasted_doc = st.text_area("Or Paste Document / Synopsis Text Here", height=80)
+
+        score_btn = st.button("⚖️ Run Engineering Quality Evaluation", type="primary")
+
+        if score_btn:
+            doc_extracted = extract_text_from_upload(up_doc) if up_doc else ""
+            combined_doc_text = f"{doc_extracted}\n{pasted_doc}".strip()
+
+            with st.spinner("Analyzing methodology depth, metric rigor, and architecture feasibility..."):
+                score_res = scorer.score_proposal(
+                    title=prop_title,
+                    problem_statement=prop_prob,
+                    proposed_methodology=prop_meth,
+                    tech_stack=prop_stack,
+                    citations=["Ref [1] 2024"],
+                    domain=prop_domain,
+                    document_text=combined_doc_text
+                )
+
+            st.markdown('<div style="margin: 1.25rem 0 0.75rem 0; border-top: 1px solid #E4E7EC;"></div>', unsafe_allow_html=True)
+            sc_col1, sc_col2 = st.columns([1, 1])
+
+            with sc_col1:
+                st.markdown("#### Overall Engineering Score")
+                overall = score_res["overall_score"]
+                stars = score_res["star_rating"]
+                grade = score_res.get("grade", "Grade A")
+                tier = score_res["readiness_tier"]
+
+                st.markdown(
+                    f'<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.7rem; color: #4F46E5;">{overall:.1f}</div>'
+                    f'<div class="stat-label">Composite Score / 100</div>'
+                    f'<div style="font-size: 0.78rem; color: #4F46E5; margin-top: 0.3rem; font-weight: 700;">{safe_html(grade)}</div>'
+                    f'</div>'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.7rem; color: #f59e0b;">{stars} ⭐</div>'
+                    f'<div class="stat-label">Technical Rating</div>'
+                    f'<div style="font-size: 0.78rem; color: #667085; margin-top: 0.3rem;">Engineering Standard</div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+                if overall >= 75:
+                    st.success(f"🚀 **{tier}**")
+                elif overall >= 50:
+                    st.warning(f"⚠️ **{tier}**")
+                else:
+                    st.error(f"❌ **{tier}**")
+
+                # Actionable Advice
+                st.markdown("#### 💡 Actionable Improvements")
+                for advice in score_res["actionable_advice"]:
+                    st.markdown(
+                        f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-left: 4px solid #4F46E5; border-radius: 8px; padding: 0.85rem 1.1rem; margin-bottom: 0.6rem; font-size: 0.88rem; color: #344054;">'
+                        f'👉 {safe_html(advice)}'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+
+            with sc_col2:
+                st.markdown("#### 📊 Multi-Dimensional Breakdown")
+                dims = score_res.get("dimensions", {})
+                dim_names = list(dims.keys())
+                dim_vals = list(dims.values())
+
+                if dim_names:
+                    # Radar Chart
+                    fig_radar = go.Figure(data=go.Scatterpolar(
+                        r=dim_vals + [dim_vals[0]],
+                        theta=dim_names + [dim_names[0]],
+                        fill='toself',
+                        fillcolor='rgba(79, 70, 229, 0.12)',
+                        line=dict(color='#4F46E5', width=2)
+                    ))
+                    fig_radar.update_layout(
+                        polar=dict(
+                            radialaxis=dict(visible=True, range=[0, 100], gridcolor="#E4E7EC", tickfont=dict(color="#667085")),
+                            angularaxis=dict(gridcolor="#E4E7EC", tickfont=dict(color="#1A1F2B"))
+                        ),
+                        margin=dict(t=25, b=25, l=30, r=30)
+                    )
+                    apply_plotly_theme(fig_radar, height=280)
+                    st.plotly_chart(fig_radar, use_container_width=True)
+
+                # Feature Attribution
+                shaps = score_res.get("feature_contributions") or score_res.get("shap_attributions", {})
+                if shaps:
+                    df_shap = pd.DataFrame([
+                        {"Dimension": k.replace("_", " ").title(), "Attribution": v}
+                        for k, v in shaps.items()
+                    ])
+                    df_shap["Color"] = df_shap["Attribution"].apply(lambda x: "#10b981" if x >= 0 else "#ef4444")
+                    fig_shap = px.bar(
+                        df_shap,
+                        x="Attribution",
+                        y="Dimension",
+                        orientation="h",
+                        color="Color",
+                        color_discrete_map="identity"
+                    )
+                    fig_shap.update_traces(marker_line_width=0)
+                    apply_plotly_theme(fig_shap, height=200)
+                    fig_shap.update_layout(
+                        xaxis=dict(title="Weighted contribution vs. neutral baseline (rule-based)", showgrid=True, gridcolor="#E4E7EC"),
+                        yaxis=dict(autorange="reversed", title="")
+                    )
+                    st.plotly_chart(fig_shap, use_container_width=True)
+        else:
+            st.markdown(
+                '<div class="callout-box">'
+                '<strong style="color: #4F46E5;">⚖️ Pre-Submission Evaluation:</strong> Enter your proposal title, problem statement, methodology, and tech stack (or upload a draft document), then click <strong>Run Engineering Quality Evaluation</strong>. '
+                'The system extracts quantitative rigor, architecture depth, and domain alignment to produce composite marks and radar dimensional breakdowns.'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+    # ---------------------------------------------------------
+    # Student Module 5: Student Team Domain Matcher
+    # ---------------------------------------------------------
+    elif student_nav == "👥 Student Team Skill Matcher":
+        render_hero_header(
+            icon="👥",
+            title="Student Team Expertise Profiler & Domain Matcher",
+            subtitle="Evaluates student team skillsets against domain taxonomies to recommend optimal project directions and highlight skill gaps.",
+            badges=[
+                ("👥 7 Domain Taxonomies", "meta-pill-blue")
+            ]
+        )
+
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            team_skills_str = st.text_area(
+                "Team Programming Languages, Frameworks & Hardware Skills",
+                "Python, PyTorch, OpenCV, Flask, Docker, CNN, Computer Vision",
+                height=100,
+                help="List skills separated by commas."
+            )
+        with col_m2:
+            team_interests_str = st.text_area(
+                "Target Project Interests / Elective Areas (optional)",
+                "Healthcare Diagnostics, Medical Imaging, Automated Disease Classification",
+                height=100,
+                help="Optional elective interests or industry preferences."
+            )
+
+        match_btn = st.button("🎯 Match Team to Optimal Domains", type="primary")
+
+        if match_btn:
+            skills = [s.strip() for s in re.split(r"[,;\n]+", team_skills_str) if s.strip()]
+            interests = [i.strip() for i in re.split(r"[,;\n]+", team_interests_str) if i.strip()]
+
+            with st.spinner("Computing team skillset embeddings and domain affinity vectors..."):
+                team_res = matcher.evaluate_team(skills=skills, interests=interests, top_k=4)
+
+            st.markdown('<div style="margin: 1.25rem 0 0.75rem 0; border-top: 1px solid #E4E7EC;"></div>', unsafe_allow_html=True)
+            st.markdown("### 🏆 Ranked Domain Recommendations")
+            for i, d in enumerate(team_res["top_domains"], 1):
+                readiness = d['team_readiness']
+                r_pill = "tag-green" if readiness == "High" else ("tag-amber" if readiness == "Moderate" else "tag-red")
+                matched_skills_html = " ".join(f'<span class="tag tag-blue">{safe_html(s)}</span>' for s in d['matched_skills']) if d['matched_skills'] else '<span style="color: #667085; font-size: 0.85rem;">Semantic affinity overlap</span>'
+                learn_skills_html = " ".join(f'<span class="tag tag-amber">{safe_html(k)}</span>' for k in d['suggested_to_learn']) if d['suggested_to_learn'] else '<span style="color: #10b981; font-size: 0.85rem;">Comprehensive skillset covered</span>'
+
+                st.markdown(
+                    f'<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 12px; padding: 1.25rem 1.35rem; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(16, 24, 40, 0.06);">'
+                    f'<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">'
+                    f'<div>'
+                    f'<span style="font-size: 1.15rem; font-weight: 800; color: #1A1F2B;">{i}. {safe_html(d["domain"])}</span>'
+                    f'<p style="margin: 0.25rem 0 0 0; color: #667085; font-size: 0.88rem;">{safe_html(d["description"])}</p>'
+                    f'</div>'
+                    f'<div style="text-align: right;">'
+                    f'<div style="font-size: 1.5rem; font-weight: 800; color: #4F46E5; line-height: 1;">{d["match_percentage"]}%</div>'
+                    f'<div style="font-size: 0.72rem; color: #667085; font-weight: 600; text-transform: uppercase;">Match Rating</div>'
+                    f'<div style="margin-top: 0.35rem;"><span class="tag {r_pill}">Readiness: {safe_html(readiness.upper())}</span></div>'
+                    f'</div>'
+                    f'</div>'
+                    f'<div style="margin-top: 0.75rem; border-top: 1px solid #E4E7EC; padding-top: 0.75rem;">'
+                    f'<div style="margin-bottom: 0.5rem;"><strong style="font-size: 0.84rem; color: #344054;">Matched Competencies:</strong><br/>{matched_skills_html}</div>'
+                    f'<div><strong style="font-size: 0.84rem; color: #344054;">💡 Recommended Skills to Learn:</strong><br/>{learn_skills_html}</div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+# -------------------------------------------------------------
+# Admin Portal Navigation & Views (Authenticated)
+# -------------------------------------------------------------
+else:
+    if "admin_authenticated" not in st.session_state:
+        st.session_state.admin_authenticated = False
+
+    st.sidebar.markdown("#### 🔐 Admin Security Gate")
+    if not st.session_state.admin_authenticated:
+        configured_key = config.admin_passkey
+        if not configured_key:
+            st.sidebar.error("Admin portal is locked: set PROJECTIQ_ADMIN_PASSKEY in your environment or .env.")
+        else:
+            admin_key_input = st.sidebar.text_input("Enter Admin Passkey", type="password")
+            if st.sidebar.button("Unlock Admin Portal", type="primary"):
+                if hmac.compare_digest(admin_key_input.strip().encode(), configured_key.encode()):
+                    st.session_state.admin_authenticated = True
+                    st.rerun()
+                else:
+                    st.sidebar.error("Invalid passkey. Access denied.")
+    else:
+        st.sidebar.success("✅ Admin Session Authenticated")
+        if st.sidebar.button("Lock Admin Portal"):
+            st.session_state.admin_authenticated = False
+            st.rerun()
+
+    if not st.session_state.admin_authenticated:
+        render_hero_header(
+            icon="🔐",
+            title="Institutional Administration Portal",
+            subtitle="Restricted environment for department coordinators, faculty evaluators, and repository administrators.",
+            badges=[
+                ("🔒 Restricted Access", "meta-pill-red")
+            ]
+        )
+        st.markdown(
+            '<div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 12px; padding: 2rem; text-align: center; max-width: 580px; margin: 2rem auto;">'
+            '<div style="font-size: 2.5rem; margin-bottom: 1rem;">🔐</div>'
+            '<h3 style="color: #1A1F2B; margin: 0 0 0.5rem 0;">Institutional Authentication Required</h3>'
+            '<p style="color: #667085; font-size: 0.92rem; line-height: 1.6; margin-bottom: 1.5rem;">'
+            'The Administration Center houses raw document ingestion, privacy redaction logs, and full corpus telemetry. '
+            'Please enter the administrative passkey in the sidebar to authenticate.'
+            '</p>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        admin_nav = st.sidebar.radio(
+            "Admin Management Modules",
+            [
+                "📥 Data Ingestion & Processing Center",
+                "🛡️ Privacy Sanitization Audit Log",
+                "📊 Institutional Corpus Telemetry"
+            ]
+        )
+
+        if not ner_active:
+            st.warning(
+                "⚠️ **Warning: spaCy NER model (`en_core_web_sm`) is not loaded.** "
+                "Named Entity Recognition is degraded. Student and faculty name redaction is relying on fallback regex heuristics. "
+                "Run `python -m spacy download en_core_web_sm` on the server to restore full NER capability."
+            )
+
+        # Admin Module 1: Ingestion & Document Processing
+        if admin_nav == "📥 Data Ingestion & Processing Center":
+            render_hero_header(
+                icon="📥",
+                title="Data Ingestion & Multi-Format Processing Center",
+                subtitle="Upload new project documents, organize into institutional hierarchy, and trigger vector pipeline indexing.",
+                badges=[
+                    ("📤 Multi-Format Parser", "meta-pill-blue")
+                ]
+            )
+
+            st.markdown("#### Upload Academic Project Files")
+            st.markdown("Supported formats: `.pdf` (Blackbooks), `.pptx` (Presentations), `.docx` (Synopses, Research Papers).")
+
+            target_dept = st.selectbox("Assign to Department", ["CS_1", "CS_2", "DS_1", "DS_2", "General"])
+            target_group = st.text_input("Assign to Group ID", "Group 14")
+            target_category = st.selectbox("Document Category", ["Black Book", "Review 4", "synopsis", "Research Paper", "Abstract"])
+
+            uploaded_files = st.file_uploader(
+                "Choose files to ingest into repository",
+                type=["pdf", "pptx", "docx", "doc"],
+                accept_multiple_files=True
+            )
+
+            if uploaded_files:
+                clean_group = re.sub(r'[^a-zA-Z0-9_\-\s]', '', target_group).strip() or "Group_14"
+                upload_dest = config.raw_dir / target_dept / clean_group / target_category
+                upload_dest.mkdir(parents=True, exist_ok=True)
+                for f in uploaded_files:
+                    clean_filename = Path(f.name).name
+                    save_path = upload_dest / clean_filename
+                    save_path.write_bytes(f.getvalue())
+                    st.success(f"Saved: `{clean_filename}` to `{save_path}`")
+                st.info("Files successfully staged. Execute `python run_pipeline.py` to index new records into ChromaDB.")
+
+        # Admin Module 2: Privacy Sanitization Audit Log
+        elif admin_nav == "🛡️ Privacy Sanitization Audit Log":
+            render_hero_header(
+                icon="🛡️",
+                title="Privacy Sanitization & PII Masking Audit Log",
+                subtitle="Inspect privacy redaction metrics, masked data breakdowns, and zero-leakage security protocols.",
+                badges=[
+                    ("🛡️ spaCy NER + Regex Masking", "meta-pill-green")
+                ]
+            )
+
+            if rep_data:
+                redactions = rep_data.get("total_redactions", {})
+                st.markdown(
+                    '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem;">'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.5rem; color: #4F46E5;">{redactions.get("local_name", 0):,}</div>'
+                    f'<div class="stat-label">Local Names</div>'
+                    f'<div style="font-size: 0.72rem; color: #667085; margin-top: 0.2rem;">Masked with [NAME]</div>'
+                    f'</div>'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.5rem; color: #60a5fa;">{redactions.get("phone", 0):,}</div>'
+                    f'<div class="stat-label">Phone Numbers</div>'
+                    f'<div style="font-size: 0.72rem; color: #667085; margin-top: 0.2rem;">Masked with [PHONE]</div>'
+                    f'</div>'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.5rem; color: #c084fc;">{redactions.get("student_id", 0):,}</div>'
+                    f'<div class="stat-label">PRNs / Roll IDs</div>'
+                    f'<div style="font-size: 0.72rem; color: #667085; margin-top: 0.2rem;">Masked with [STUDENT_ID]</div>'
+                    f'</div>'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.5rem; color: #34d399;">{redactions.get("email", 0):,}</div>'
+                    f'<div class="stat-label">Personal Emails</div>'
+                    f'<div style="font-size: 0.72rem; color: #667085; margin-top: 0.2rem;">Masked with [EMAIL]</div>'
+                    f'</div>'
+                    f'<div class="stat-card" style="padding: 1rem;">'
+                    f'<div class="stat-value" style="font-size: 1.5rem; color: #f87171;">{redactions.get("credential", 0):,}</div>'
+                    f'<div class="stat-label">Credentials</div>'
+                    f'<div style="font-size: 0.72rem; color: #667085; margin-top: 0.2rem;">Masked with [CREDENTIAL]</div>'
+                    f'</div>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+
+                st.markdown("""
+                <div style="background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 10px; padding: 1.25rem 1.4rem;">
+                <h5 style="margin: 0 0 0.5rem 0; color: #4F46E5; font-weight: 700;">Sanitization Protocols Applied:</h5>
+                <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.88rem; color: #344054; line-height: 1.6;">
+                <li><strong>Administrative Front-Matter:</strong> Certificates of completion, candidate declarations, acknowledgments, and plagiarism reports are automatically filtered prior to vectorization.</li>
+                <li><strong>PII Masking:</strong> Student phone numbers, email addresses, institutional roll/PRN numbers, and local guide/student names (discovered via context cues + spaCy Named Entity Recognition) are replaced with deterministic tags (<code>[NAME]</code>, <code>[STUDENT_ID]</code>, <code>[PHONE]</code>, <code>[EMAIL]</code>).</li>
+                <li><strong>Scholarly Preservation:</strong> Academic literature citations (e.g. <code>[1]</code>, <code>[2]</code>, <code>Vaswani et al. (2017)</code>) in Literature Review and Reference sections are preserved intact for accurate RAG synthesis.</li>
+                </ul>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Admin Module 3: Institutional Corpus Telemetry
+        elif admin_nav == "📊 Institutional Corpus Telemetry":
+            render_hero_header(
+                icon="📊",
+                title="Institutional Corpus Telemetry & Search",
+                subtitle="Corpus telemetry, passage token distributions, and document search across engineering cohorts.",
+                badges=[
+                    (f"📊 {db_count:,} Passages", "meta-pill-blue")
+                ]
+            )
+
+            # KPI Row
+            st.markdown(
+                '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">'
+                f'<div class="stat-card">'
+                f'<div class="stat-icon" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">📄</div>'
+                f'<div class="stat-value">{man_data.get("total_files", 0)}</div>'
+                f'<div class="stat-label">Raw Documents</div>'
+                f'</div>'
+                f'<div class="stat-card">'
+                f'<div class="stat-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">🧹</div>'
+                f'<div class="stat-value">{rep_data.get("cleaned_documents", 0)}</div>'
+                f'<div class="stat-label">Sanitized Docs</div>'
+                f'</div>'
+                f'<div class="stat-card">'
+                f'<div class="stat-icon" style="background: rgba(139, 92, 246, 0.2); color: #c084fc;">🧬</div>'
+                f'<div class="stat-value">{db_count:,}</div>'
+                f'<div class="stat-label">Vector Chunks</div>'
+                f'</div>'
+                f'<div class="stat-card">'
+                f'<div class="stat-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">🛡️</div>'
+                f'<div class="stat-value">{total_redactions:,}</div>'
+                f'<div class="stat-label">PII Redactions</div>'
+                f'</div>'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+            if not df_chunks.empty:
+                col_left, col_right = st.columns(2)
+                with col_left:
+                    st.markdown("#### 📊 Chunks by Department")
+                    dept_counts = df_chunks["department"].value_counts().reset_index()
+                    dept_counts.columns = ["Department", "Chunks"]
+                    fig_dept = px.bar(
+                        dept_counts,
+                        x="Department",
+                        y="Chunks",
+                        color="Department",
+                        color_discrete_sequence=["#4F46E5", "#6366F1", "#818CF8", "#A5B4FC", "#C7D2FE"],
+                        text="Chunks"
+                    )
+                    fig_dept.update_traces(textposition='outside', marker_line_width=0)
+                    apply_plotly_theme(fig_dept, height=300)
+                    fig_dept.update_layout(showlegend=False)
+                    st.plotly_chart(fig_dept, use_container_width=True)
+
+                with col_right:
+                    st.markdown("#### 📑 Document Category Distribution")
+                    cat_counts = df_chunks["category"].value_counts().reset_index()
+                    cat_counts.columns = ["Category", "Chunks"]
+                    fig_cat = px.pie(
+                        cat_counts,
+                        names="Category",
+                        values="Chunks",
+                        hole=0.52,
+                        color_discrete_sequence=["#4F46E5", "#6366F1", "#818CF8", "#A5B4FC", "#C7D2FE"]
+                    )
+                    fig_cat.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#FFFFFF', width=2)))
+                    apply_plotly_theme(fig_cat, height=300)
+                    fig_cat.update_layout(showlegend=False)
+                    st.plotly_chart(fig_cat, use_container_width=True)
+
+                col_t1, col_t2 = st.columns(2)
+                with col_t1:
+                    st.markdown("#### 📏 Token Size Compliance (Hard Max $\\le 520$)")
+                    fig_tok = px.histogram(
+                        df_chunks,
+                        x="token_count",
+                        nbins=30,
+                        color_discrete_sequence=["#4F46E5"]
+                    )
+                    fig_tok.add_vline(x=520, line_dash="dash", line_color="#ef4444", annotation_text="Hard Max (520 tokens)", annotation_font_color="#ef4444")
+                    apply_plotly_theme(fig_tok, height=280)
+                    st.plotly_chart(fig_tok, use_container_width=True)
+
+                with col_t2:
+                    st.markdown("#### 🔬 Section Boundary Breakdown")
+                    sec_counts = df_chunks["section"].value_counts().head(8).reset_index()
+                    sec_counts.columns = ["Section", "Chunks"]
+                    fig_sec = px.bar(
+                        sec_counts,
+                        x="Chunks",
+                        y="Section",
+                        orientation="h",
+                        color_discrete_sequence=["#8b5cf6"]
+                    )
+                    fig_sec.update_traces(marker_line_width=0)
+                    apply_plotly_theme(fig_sec, height=280)
+                    fig_sec.update_layout(yaxis=dict(autorange="reversed"))
+                    st.plotly_chart(fig_sec, use_container_width=True)
+
+            # Passage Search (Admin Archive Exploration)
+            with st.expander("🔎 Deep Passage Archive Search", expanded=False):
+                s_col1, s_col2 = st.columns([3, 1])
+                with s_col1:
+                    a_search = st.text_input("Passage Search Query", placeholder="e.g. CNN accuracy plant disease latency")
+                with s_col2:
+                    a_top_k = st.slider("Top Chunks", min_value=3, max_value=12, value=5)
+
+                if a_search:
+                    search_res = store.query_similar(query_text=a_search, n_results=a_top_k)
+                    for r in search_res:
+                        st.markdown(render_citation_card({
+                            "source_file": r["metadata"].get("source_file"),
+                            "department": r["metadata"].get("department"),
+                            "group_id": r["metadata"].get("group_id"),
+                            "section": r["metadata"].get("section"),
+                            "similarity_score": f"{r.get('similarity', 0.0):.2f}",
+                            "excerpt": r.get("text", "")[:280]
+                        }), unsafe_allow_html=True)

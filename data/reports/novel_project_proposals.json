@@ -1,69 +1,54 @@
 [
   {
-    "title": "Next-Gen Adaptive Artificial Intelligence & Edge Systems: Real-Time Edge-Optimized Multi-Modal Framework",
-    "domain": "Artificial Intelligence & Edge Systems",
-    "problem_statement": "Past final-year student implementations suffered from high latency, reliance on static datasets, and lack of real-time edge deployment capabilities.",
+    "title": "Edge-Accelerated Low-Latency Optimization: Review4",
+    "domain": "Review4 (Edge-Accelerated Low-Latency Optimization)",
+    "problem_statement": "Analysis of previous student project 'Blackbook Report Spiral Binding.pdf' (FUTURE SCOPE) revealed an unaddressed limitation: \"8.2 Future Scope 1. Integration with Official Cybercrime Platforms Future versions of JusticeAssist can be expanded to interface directly...\". Prior methodologies lacked adaptive mechanisms to overcome these operational constraints.",
     "past_project_citations": [
       {
-        "source_file": "BLACK_BOOK_REPORT.docx",
-        "identified_gap": "Identified limitation in FUTURE SCOPE: 8.2 Future Scope The future of this system holds vast potential for innovation and expansion. With rapid advancements in..."
-      },
-      {
-        "source_file": "Group 2 Synopsis (1).docx",
-        "identified_gap": "Identified limitation in FUTURE SCOPE: Future Scope Integration with real quantum hardware. Extension to multimodal biometrics (face, iris). Incorporation of p..."
-      },
-      {
-        "source_file": "SUPER DUPER FINAL REPORT OF VR.pdf",
-        "identified_gap": "Identified limitation in FUTURE SCOPE: 8.2 Future Scope \nThe Virtual Reality–based Cybercrime Investigation Lab has immense potential for \nexpansion and real-w..."
+        "source_file": "Blackbook Report Spiral Binding.pdf",
+        "identified_gap": "Reported in FUTURE SCOPE: 8.2 Future Scope 1. Integration with Official Cybercrime Platforms Future versions of JusticeAssist can be expanded to interface directly..."
       }
     ],
-    "core_innovation": "Integrates lightweight quantized neural architectures (ONNX/TensorRT) with asynchronous event-driven streaming to enable sub-50ms inference on commodity edge hardware.",
-    "proposed_methodology": "1. Multi-modal data ingestion and normalization. 2. Edge model quantization and knowledge distillation. 3. Zero-shot anomaly detection with fallback alerts. 4. Interactive telemetry monitoring dashboard.",
+    "core_innovation": "Directly resolves the limitation highlighted in 'Blackbook Report Spiral Binding.pdf' by formulating a modular architecture combining edge-accelerated low-latency optimization with modern engineering tooling (Python, FastAPI, PyTorch).",
+    "proposed_methodology": "1. Ingestion and targeted normalization tailored to resolve the bottleneck in 'Blackbook Report Spiral Binding.pdf'.\n2. Implementation of modern architectural components (Python, FastAPI, PyTorch).\n3. Rigorous validation against historical benchmarks from 'Blackbook Report Spiral Binding.pdf'.\n4. Production packaging using containerized services and reproducible evaluation metrics.",
     "tech_stack": [
       "Python",
       "FastAPI",
-      "PyTorch / ONNX Runtime",
-      "ChromaDB",
-      "Streamlit",
+      "PyTorch",
       "Docker"
     ],
-    "feasibility_score": 9,
+    "feasibility_score": 7,
     "expected_deliverables": [
-      "Lightweight Edge-Ready Model Pipeline",
-      "Real-Time REST & WebSocket API",
-      "Comprehensive Benchmark Comparison against Past Projects",
-      "Interactive Web Verification Dashboard"
+      "Engineered Pipeline & Pre-Trained Weights",
+      "Benchmark Evaluation Report comparing with Previous Baselines",
+      "REST API Service & Container Deployment",
+      "Technical Documentation & Verification Suite"
     ]
   },
   {
-    "title": "Privacy-Preserving Federated Intelligence for Artificial Intelligence & Edge Systems",
-    "domain": "Privacy & Artificial Intelligence & Edge Systems",
-    "problem_statement": "Previous student projects required centralized collection of sensitive user records, introducing severe data privacy and compliance risks.",
+    "title": "Self-Supervised & Few-Shot Generalization: Computer Science & Engineering",
+    "domain": "Computer Science & Engineering (Self-Supervised & Few-Shot Generalization)",
+    "problem_statement": "Analysis of previous student project 'Black book Conten.pdf' (FUTURE SCOPE) revealed an unaddressed limitation: \"8.2 Future Scope The future of the Behavior-Driven Insider Threat Detection System holds strong potential for both technical and organiza...\". Prior methodologies lacked adaptive mechanisms to overcome these operational constraints.",
     "past_project_citations": [
       {
-        "source_file": "BLACK_BOOK_REPORT.docx",
-        "identified_gap": "Identified limitation in FUTURE SCOPE: 8.2 Future Scope The future of this system holds vast potential for innovation and expansion. With rapid advancements in..."
-      },
-      {
-        "source_file": "Group 2 Synopsis (1).docx",
-        "identified_gap": "Identified limitation in FUTURE SCOPE: Future Scope Integration with real quantum hardware. Extension to multimodal biometrics (face, iris). Incorporation of p..."
+        "source_file": "Black book Conten.pdf",
+        "identified_gap": "Reported in FUTURE SCOPE: 8.2 Future Scope The future of the Behavior-Driven Insider Threat Detection System holds strong potential for both technical and organiza..."
       }
     ],
-    "core_innovation": "Applies federated learning with differential privacy guarantees, training decentralized models locally on distributed client nodes without ever transmitting raw data to a central server.",
-    "proposed_methodology": "1. Local client node parameter training. 2. Secure federated aggregation server (FedAvg with DP noise). 3. Integrity verification and drift monitoring. 4. End-to-end evaluation against centralized benchmarks.",
+    "core_innovation": "Directly resolves the limitation highlighted in 'Black book Conten.pdf' by formulating a modular architecture combining self-supervised & few-shot generalization with modern engineering tooling (Python, FastAPI, PyTorch).",
+    "proposed_methodology": "1. Ingestion and targeted normalization tailored to resolve the bottleneck in 'Black book Conten.pdf'.\n2. Implementation of modern architectural components (Python, FastAPI, PyTorch).\n3. Rigorous validation against historical benchmarks from 'Black book Conten.pdf'.\n4. Production packaging using containerized services and reproducible evaluation metrics.",
     "tech_stack": [
       "Python",
-      "Flower (FL framework)",
-      "PyTorch",
       "FastAPI",
-      "React / Streamlit"
+      "PyTorch",
+      "Docker"
     ],
-    "feasibility_score": 8,
+    "feasibility_score": 6,
     "expected_deliverables": [
-      "Decentralized Client-Server Simulation",
-      "Differential Privacy Verification Suite",
-      "Performance & Accuracy Trade-Off Report",
-      "Full Engineering Documentation & API"
+      "Engineered Pipeline & Pre-Trained Weights",
+      "Benchmark Evaluation Report comparing with Previous Baselines",
+      "REST API Service & Container Deployment",
+      "Technical Documentation & Verification Suite"
     ]
   }
 ]

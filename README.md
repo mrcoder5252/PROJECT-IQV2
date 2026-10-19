@@ -1,262 +1,376 @@
-# Project-IQ: Academic Project Intelligence Platform
+# Project-IQ: Academic Intelligence & Structure-Aware RAG Platform
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B.svg)](https://streamlit.io/)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-Persistent_Vector_Store-green.svg)](https://www.trychroma.com/)
-[![SBERT](https://img.shields.io/badge/Sentence--Transformers-all--MiniLM--L6--v2-orange.svg)](https://sbert.net/)
-[![Docker Ready](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
-[![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-success.svg)]()
-[![Tests](https://img.shields.io/badge/Tests-83%2F83_Passed_(100%25)-brightgreen.svg)]()
-[![Architecture](https://img.shields.io/badge/Architecture-Springer_Conference_Design-blueviolet.svg)]()
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.30%2B-FF4B4B.svg?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20Store-orange.svg)](https://www.trychroma.com/)
+[![Gemini](https://img.shields.io/badge/Google%20Gemini-API%20Enabled-4285F4.svg?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Tests](https://img.shields.io/badge/Tests-100%25%20Passing-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-> **Project-IQ** is an enterprise-grade Academic Project Intelligence and Structure-Aware Retrieval-Augmented Generation (RAG) Platform. Built to analyze historical undergraduate and postgraduate engineering project blackbooks, presentation decks, and synopses across departments (`CS_1`, `CS_2`, `DS_1`, `DS_2`), Project-IQ transforms years of static archives into an active AI Research Assistant, originality verifier, gap miner, and team skill matcher.
+**Project-IQ** is an institutional academic intelligence platform engineered to mine multi-department archives of final-year engineering capstones, black book project reports, seminar documents, and review presentations (`.pdf`, `.docx`, `.doc`, `.pptx`). 
 
----
-
-## 🌟 Key Capabilities & Module Overview
-
-| # | Module | Core Functionality | Underlying Technology |
-|---|---|---|---|
-| **0** | **💬 Conversational AI RAG Advisor (Ask Anything)** | Open-ended, natural language Q&A across the entire institutional repository. Supports technical comparisons, architecture discovery, dataset inquiry, and novel proposal synthesis. | Dual-Engine: Google Gemini (`gemini-2.5-flash`) + Offline High-Fidelity Structured Synthesizer with Grounded Citations |
-| **1** | **🏛️ Corpus Telemetry & Analytics** | Real-time structural statistics, departmental distributions (`CS_1`, `CS_2`, `DS_1`, `DS_2`), token distributions, and PII protection metrics. | Plotly Interactive Visualizations + Metadata Aggregators |
-| **2** | **🔎 Corpus Document & Passage Search** | Dual-mode hybrid search combining exact keyword substring matching and dense semantic vector retrieval. | 384-dimensional dense SBERT embeddings + Section & Category filters |
-| **3** | **🛡️ Originality & Duplicate Detector** | Evaluates new project proposals against past submissions to prevent redundant or plagiarized ideas prior to department registration. | Cosine similarity thresholding ($\tau = 0.82$) + Jaccard token overlap + Originality Gauge |
-| **4** | **💡 Research Gap Miner & Novel Ideator** | Automatically mines unresolved limitations and future scope items from past reports, clustering gaps and synthesizing novel capstone proposals. | Structure-aware section parsing + Cited Novel Project Proposal Generator |
-| **5** | **⚖️ Explainable ML Quality Scorer** | Evaluates proposal rigor across 5 academic dimensions (Objectives, Methodology, Evaluation, Gaps, Domain Depth) with actionable improvement advice. | XGBoost / Random Forest + SHAP Feature Attribution Rubrics |
-| **6** | **👥 Student Team Domain Matcher** | Analyzes student team skills and profiles expertise against 6 core computer science and data science domain taxonomies. | Semantic skill embedding alignment + Readiness scoring |
-| **7** | **⚙️ Ingestion & Privacy Audit Center** | Complete document parsing, administrative front-matter stripping, and spaCy NER PII masking audit logs. | PyMuPDF, python-pptx, Tesseract OCR, spaCy NER (`en_core_web_sm`) |
+It provides automated plagiarism & originality auditing, limitation/gap synthesis, rule-based rubric quality scoring, mentor matching, and section-grounded Retrieval-Augmented Generation (RAG) with local offline fallbacks.
 
 ---
 
-## 🏛️ System Architecture
+## Table of Contents
 
-```
-                                      [ Streamlit UI ]
-                      (Conversational AI RAG + 7 Analytical Modules)
-                                             │
-                     ┌───────────────────────┼───────────────────────┐
-                     ▼                       ▼                       ▼
-               [ PyMuPDF ]            [ python-pptx ]         [ Tesseract OCR ]
-             (Parses Reports)         (Parses Slides)       (Parses Scanned Pages)
-                     └───────────────────────┬───────────────────────┘
-                                             ▼
-                            [ Privacy & Front-Matter Sanitizer ]
-                        (Regex + spaCy NER Shields 7,385+ PII Entities)
-                                             ▼
-                            [ Structure-Aware Token Chunking ]
-                       (Target 450, Hard Ceiling <=520, 6-Shingle Jaccard)
-                                             ▼
-                         [ SBERT (all-MiniLM-L6-v2) Embeddings ]
-                                             │
-                     ┌───────────────────────┴───────────────────────┐
-                     ▼                                               ▼
-        [ ChromaDB Vector Store ]                        [ Research Gap Miner ]
-         (4,792 Canonical Chunks)                       (Limitation & Scope Mining)
-                     │                                               │
-                     └───────────────────────┬───────────────────────┘
-                                             ▼
-                                [ Dual-Engine RAG Processor ]
-                     ┌───────────────────────┴───────────────────────┐
-                     ▼                                               ▼
-             [ Google Gemini API ]                      [ High-Fidelity Synthesizer ]
-         (gemini-2.5-flash Generative)                 (Offline Local Structured RAG)
-                     │                                               │
-                     └───────────────────────┬───────────────────────┘
-                                             ▼
-                            [ Grounded Academic Citations ]
-                        (Document Name, Department, Group, Section)
-```
+- [Key Capabilities](#key-capabilities)
+- [System Architecture](#system-architecture)
+- [Project Directory Structure](#project-directory-structure)
+- [Quick Start](#quick-start)
+  - [Windows (One-Click Setup)](#windows-one-click-setup)
+  - [Linux & macOS](#linux--macos)
+  - [Docker & Containerized Deployment](#docker--containerized-deployment)
+- [Environment Configuration](#environment-configuration)
+- [Pipeline Execution](#pipeline-execution)
+- [Modules Overview](#modules-overview)
+- [Web Dashboard Guide](#web-dashboard-guide)
+- [Testing & Quality Assurance](#testing--quality-assurance)
+- [Privacy, Compliance & Redaction](#privacy-compliance--redaction)
+- [Troubleshooting & Diagnostics](#troubleshooting--diagnostics)
+- [Contributing & License](#contributing--license)
 
 ---
 
-## 📂 Repository Structure
+## Key Capabilities
 
-```
-project_iq/
-├── data/
-│   ├── raw/                       # Raw input documents (.gitkeep tracked; add PDF/DOCX/PPTX here)
-│   │   ├── CS_1/                  # Computer Science Cohort 1
-│   │   ├── CS_2/                  # Computer Science Cohort 2
-│   │   ├── DS_1/                  # Data Science Cohort 1
-│   │   └── DS_2/                  # Data Science Cohort 2
-│   ├── extracted/                 # Extracted raw text blocks (.gitkeep tracked)
-│   ├── cleaned/                   # Sanitized JSON files (PII masked via spaCy NER)
-│   ├── chunks/                    # Canonical token-bounded chunks.jsonl (4,792 chunks)
-│   ├── chroma_db/                 # Persistent ChromaDB vector index (auto-indexes on boot)
-│   ├── reports/                   # Audit logs & synthesized novel proposals
-│   └── logs/                      # Rotating production log files
-├── src/
-│   ├── __init__.py
-│   ├── config.py                  # Centralized configuration & environment management
-│   ├── logger.py                  # Structured console (UTF-8 safe) and rotating file logger
-│   ├── extract.py                 # Multi-format document parser (PDF, PPTX, DOCX, DOC) + OCR
-│   ├── clean.py                   # Front-matter stripper & spaCy NER privacy sanitizer
-│   ├── chunk_for_rag.py           # Structure-aware chunker (<=520 tokens) + Jaccard clustering
-│   ├── vector_store.py            # ChromaDB SBERT vector store & hybrid section retrieval
-│   ├── rag_chat.py                # Conversational RAG engine (Gemini + Local Academic Synthesizer)
-│   ├── gap_analyzer.py            # Limitation mining & grounded proposal synthesis
-│   ├── duplicate_detector.py      # Project originality & duplicate idea detector
-│   ├── quality_scorer.py          # Rubric quality evaluator with SHAP attribution
-│   └── team_matcher.py            # Student team skill profiler & domain matcher
-├── web/
-│   └── app.py                     # WCAG 2.1 AA compliant 8-module Streamlit dashboard
-├── scripts/
-│   ├── run_all_tests.py           # Master automated test execution runner
-│   └── package_project.py         # Production distribution zip packager
-├── tests/
-│   ├── test_rag_chat.py           # Conversational RAG, synthesis, and citation unit tests
-│   ├── test_extraction.py         # Multi-format parsing and OCR fallback tests
-│   ├── test_cleaning.py           # PII redaction and citation preservation tests
-│   ├── test_chunking.py           # Token bounds (<=520) and deduplication tests
-│   ├── test_vector_store.py       # ChromaDB vector indexing and retrieval tests
-│   ├── test_gap_analysis.py       # Limitation extraction and proposal generation tests
-│   ├── test_team_matcher.py       # Domain matching and readiness tests
-│   ├── test_quality_and_duplicates.py # Scorer and originality detector tests
-│   ├── test_production_contracts.py   # Resilience and fallback tests
-│   ├── test_config.py             # Configuration and environment override tests
-│   ├── test_logger.py             # Logger singleton and handler tests
-│   ├── test_adversarial.py        # Corrupted headers and token burst tests
-│   └── test_e2e_pipeline.py       # Sequential end-to-end integration tests
-├── Dockerfile                     # Production multi-stage Docker container specification
-├── docker-compose.yml             # Container orchestration and resource provisioning
-├── .dockerignore                  # Docker build exclusions
-├── .gitignore                     # Git tracking exclusions (protects raw PII & binaries)
-├── .env.example                   # Environment variable template
-├── pyproject.toml                 # Standard packaging and CLI configuration
-├── run_pipeline.py                # Master CLI pipeline orchestrator
-├── requirements.txt               # Production Python dependencies
-└── README.md                      # Academic & engineering documentation
-```
+1. **Originality & Duplicate Detection**
+   - Computes embedding cosine similarity against the entire corpus of past institutional projects.
+   - Categorizes project proposals into **High Similarity (Plagiarism / Duplicate Alert)**, **Moderate Overlap**, or **Novel Proposal**.
+   - Highlights matching projects, shared technical concepts, and provides actionable recommendations.
+
+2. **Research Gap & Novelty Synthesis**
+   - Automatically parses methodology limitations, hardware/latency bottlenecks, and future scope passages from past reports.
+   - Leverages Google Gemini (with resilient dynamic fallback to local rule-based synthesis when offline) to propose feasible, novel final-year projects with difficulty and impact estimates.
+
+3. **Rubric-Based Quality Scorer**
+   - A transparent, reproducible 100-point heuristic scoring system across 4 dimensions:
+     - **Methodology Depth** (steps, pipeline flow, reproducibility)
+     - **Metric Rigor** (empirical benchmarks, accuracy, F1, latency, throughput)
+     - **Tech Stack Coherence** (compatibility and relevance of declared frameworks)
+     - **Problem Clarity** (objective formulation and scope definition)
+   - Eliminates opaque black-box LLM scoring in favor of verifiable academic rubrics.
+
+4. **Structure-Aware RAG Academic Assistant**
+   - Conversational search grounded directly in institutional project chunks.
+   - Every answer cites exact document names, academic departments, project groups, and section titles.
+   - Built-in guardrails detect off-topic or out-of-domain inquiries.
+
+5. **Cross-Disciplinary Team & Faculty Matcher**
+   - Analyzes student skill profiles and proposed ideas against a categorized engineering taxonomy (Computer Vision, NLP, Edge Computing, Healthcare AI, Distributed Systems, Cybersecurity, etc.).
+   - Recommends faculty advisors, domain mentors, and complementary team roles.
+
+6. **Secured Administrative Portal**
+   - Passkey-protected admin interface for running live pipeline re-indexing, viewing raw audit logs, updating originality thresholds, and inspecting corpus statistics.
 
 ---
 
-## ⚡ Quick Start Guide
+## System Architecture
 
-### Prerequisites
-- Python 3.10 or 3.11
-- Git
-- (Optional) Tesseract OCR for scanned PDF processing
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/mrcoder5252/PROJECT-IQV2.git
-cd PROJECT-IQV2
+```mermaid
+flowchart TD
+    A[Raw Reports: PDF, DOCX, DOC, PPTX] --> B[src.extract: Multi-Format Parser & Hierarchy Extractor]
+    B --> C[src.clean: PII Redaction & Front-Matter Stripper]
+    C --> D[src.chunk_for_rag: Section-Aware Token Chunking & Shingle Deduplication]
+    D --> E[(ChromaDB: L2-Normalized Cosine Embeddings)]
+    E --> F[src.duplicate_detector: Originality & Collision Auditor]
+    E --> G[src.gap_analyzer: Future-Scope & Novel Proposal Synthesizer]
+    E --> H[src.rag_chat: Gemini / Local Fallback RAG Assistant]
+    D --> I[src.quality_scorer: 4-Axis Heuristic Rubric Engine]
+    E --> J[src.team_matcher: Faculty & Skill Taxonomy Alignment]
+    F & G & H & I & J --> K[Streamlit Web Application: web/app.py]
 ```
 
-### 2. Set Up Virtual Environment & Dependencies
-```bash
-# Create and activate virtual environment
-python -m venv venv
-
-# Windows (PowerShell):
-.\venv\Scripts\Activate.ps1
-# Linux/macOS:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-```
-
-### 3. Launch the Dashboard
-```bash
-streamlit run web/app.py
-```
-*The app will automatically initialize the vector store from `data/chunks/chunks.jsonl` if running for the first time and launch the **Conversational AI RAG Advisor** at `http://localhost:8501`.*
+### Ingestion Pipeline Highlights
+- **College Hierarchy Extraction**: Automatically infers department (`DS_1`, `CS_2`, etc.), group ID (`Group 4`), and report category (`Black Book`, `Review 4`, etc.) from the folder structure.
+- **OCR & Format Fallbacks**: Scanned PDFs are seamlessly processed via Tesseract OCR; legacy binary `.doc` files are converted through LibreOffice headless mode.
+- **Section-Aware Chunking**: Maintains semantic boundaries up to 520 tokens with 80-token overlap; shingles identify near-duplicate text blocks while preserving full context.
+- **Idempotent Vector Indexing**: Deterministic MD5 chunk IDs prevent duplicate indexing on repeated pipeline runs; stale records are automatically pruned.
 
 ---
 
-## 🤖 Dual-Engine AI RAG Configuration
-
-Project-IQ is engineered to work seamlessly in both cloud-connected and air-gapped / offline environments:
-
-### Mode A: Google Gemini Generative Mode (Online)
-Enter your Gemini API Key in the dashboard sidebar (`🔑 Gemini API Key (Optional)`) or define it in your `.env` file:
-```bash
-GEMINI_API_KEY="your-gemini-api-key-here"
-```
-The assistant will utilize Google Gemini (`gemini-2.5-flash` via the official `google.genai` SDK) to generate deep conversational syntheses grounded strictly in the retrieved project passages.
-
-### Mode B: High-Fidelity Local Synthesizer (Offline / Zero-Cost)
-If no API key is provided, the platform automatically engages its built-in local academic synthesis engine. It:
-1. Identifies model architectures (`CNN`, `ResNet`, `YOLO`, `LSTM`, `SVM`, `XGBoost`, etc.).
-2. Extracts quantitative benchmarks (e.g. `94.2% accuracy`, latency, dataset sizes).
-3. Summarizes methodology patterns and unaddressed limitations.
-4. Generates structured strategic guidance with grounded source citations.
-
----
-
-## 🧪 Comprehensive Automated Test Suite (83 / 83 Passed)
-
-The repository features comprehensive automated test coverage spanning unit, adversarial, regression, and end-to-end integration testing:
-
-```bash
-python -m unittest discover -s tests -p "test_*.py"
-```
+## Project Directory Structure
 
 ```text
-Ran 83 tests in 6.602s
-
-OK
+PROJECT-IQV2/
+├── .streamlit/
+│   └── config.toml             # Streamlit UI theme and server configuration
+├── data/
+│   ├── raw/                    # Raw student submissions: <DEPT>/<Group N>/... (.gitkeep)
+│   ├── extracted/              # Extracted JSON texts with structural metadata (.gitkeep)
+│   ├── cleaned/                # PII-redacted, front-matter-cleaned texts (.gitkeep)
+│   ├── chunks/
+│   │   └── chunks.jsonl        # Section-aware tokenized chunks ready for vector indexing
+│   ├── chroma_db/              # ChromaDB vector database (git-ignored)
+│   └── reports/
+│       ├── cleaning_report.json
+│       ├── novel_project_proposals.json
+│       └── pipeline_summary.json
+├── logs/                       # Rotating application logs (git-ignored)
+├── scripts/
+│   └── doctor.py               # Pre-flight environment & dependency diagnostic tool
+├── src/
+│   ├── __init__.py             # Module namespace
+│   ├── chunk_for_rag.py        # Token-bounded chunker with shingle near-dup detection
+│   ├── clean.py                # spaCy NER + regex PII redaction and front-matter filter
+│   ├── config.py               # Centralized config (PROJECTIQ_ and PROJECT_IQ_ env prefixes)
+│   ├── duplicate_detector.py   # Embedding cosine similarity originality engine
+│   ├── embeddings.py           # Shared thread-safe SentenceTransformer embedding cache
+│   ├── extract.py              # Multi-format document parser (PDF/DOCX/PPTX/DOC)
+│   ├── gap_analyzer.py         # Limitation miner & Gemini/local proposal generator
+│   ├── llm.py                  # Resilient Gemini client with model fallback & timeout handling
+│   ├── logger.py               # Structured color/file logging utility
+│   ├── quality_scorer.py       # Deterministic 4-axis rubric quality scoring engine
+│   ├── rag_chat.py             # Context-grounded RAG query handler with guardrails
+│   ├── team_matcher.py         # Domain taxonomy & faculty mentor recommender
+│   └── vector_store.py         # ChromaDB persistence, cosine search, and pruning wrapper
+├── tests/
+│   ├── conftest.py             # Pytest fixtures and lightweight offline embedding/token fakes
+│   ├── test_e2e_offline.py     # Complete offline end-to-end pipeline test
+│   └── test_regressions.py     # Regression suite for edge cases, PII, and rubric scoring
+├── web/
+│   └── app.py                  # Modern conference-grade Streamlit interactive dashboard
+├── .dockerignore
+├── .env.example                # Template for environment variables and API keys
+├── .gitignore                  # Git ignore rules for PII, models, and virtual environments
+├── docker-compose.yml          # Containerized multi-service orchestration
+├── Dockerfile                  # Production container definition
+├── pyproject.toml              # Build specifications and package metadata
+├── README.md                   # Project documentation
+├── requirements.txt            # Core production dependencies
+├── requirements-dev.txt        # Development and testing dependencies
+├── run_all.bat                 # Windows automated pipeline runner + web launcher
+├── run_pipeline.py             # CLI pipeline orchestrator with stage-selection flags
+└── setup_windows.bat           # One-click Windows virtualenv and dependency installer
 ```
-
-| Test Suite | Focus Area | Tests | Status |
-|---|---|:---:|:---:|
-| `test_rag_chat.py` | Multi-turn RAG chat, local synthesis, citations, dynamic key binding | 7 | **PASSED** |
-| `test_extraction.py` | Multi-format parsing (PDF, DOCX, PPTX), OCR fallback, SHA-256 | 10 | **PASSED** |
-| `test_cleaning.py` | Administrative front-matter stripping, spaCy PII redaction | 8 | **PASSED** |
-| `test_chunking.py` | Token ceiling ($\le 520$), section splitting, Jaccard dedup | 9 | **PASSED** |
-| `test_vector_store.py` | ChromaDB persistence, SBERT embeddings, hybrid section retrieval | 7 | **PASSED** |
-| `test_gap_analysis.py` | Research limitation extraction, proposal synthesis with citations | 8 | **PASSED** |
-| `test_team_matcher.py` | Domain taxonomy embeddings, team skill readiness rating | 8 | **PASSED** |
-| `test_quality_and_duplicates.py` | Originality gauge, duplicate detection, rubric ML scorer | 4 | **PASSED** |
-| `test_production_contracts.py` | Empty/corrupt inputs, zero-byte files, database recovery | 4 | **PASSED** |
-| `test_config.py` | Path resolution, environment variable overrides, directory creation | 3 | **PASSED** |
-| `test_logger.py` | Rotating file logs, UTF-8 Windows stream safety, singleton loggers | 2 | **PASSED** |
-| `test_adversarial.py` | Corrupt document headers, token bursts, extreme boundaries | 7 | **PASSED** |
-| `test_e2e_pipeline.py` | Full sequential 5-stage pipeline run on real academic files | 5 | **PASSED** |
-| **Total Test Suite** | **System-Wide Quality Verification** | **83** | **100% OK** |
 
 ---
 
-## 🐳 Docker Container Deployment
+## Quick Start
 
-To run Project-IQ in an isolated, production-grade containerized environment:
+### Windows (One-Click Setup)
+
+1. **Initialize the Environment:**
+   ```cmd
+   setup_windows.bat
+   ```
+   *This creates a `.venv`, upgrades pip, installs `requirements.txt` and `requirements-dev.txt`, downloads the `en_core_web_sm` spaCy model, and creates `.env` from `.env.example`.*
+
+2. **Configure Credentials:**
+   Open `.env` in any text editor and configure:
+   ```dotenv
+   PROJECTIQ_ADMIN_PASSKEY=YourSecurePasskey
+   GEMINI_API_KEY=AIzaSy...   # Optional (offline local fallback enabled if omitted)
+   ```
+
+3. **Add Past Project Documents:**
+   Place institutional reports into `data\raw\<DEPARTMENT>\<Group ID>\` (e.g., `data\raw\DS_1\Group 4\blackbook.pdf`).
+
+4. **Execute Pipeline & Launch Dashboard:**
+   ```cmd
+   run_all.bat
+   ```
+   *The interactive dashboard will automatically open at `http://localhost:8501`.*
+
+---
+
+### Linux & macOS
+
+1. **Create and activate a virtual environment:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+2. **Install dependencies and spaCy language model:**
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt -r requirements-dev.txt
+   python -m spacy download en_core_web_sm
+   ```
+
+3. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your passkey and Gemini API key
+   ```
+
+4. **Run Diagnostics & Pipeline:**
+   ```bash
+   python scripts/doctor.py
+   python run_pipeline.py
+   ```
+
+5. **Start Streamlit Dashboard:**
+   ```bash
+   streamlit run web/app.py
+   ```
+
+---
+
+### Docker & Containerized Deployment
+
+1. **Build and start the container:**
+   ```bash
+   docker compose up --build -d
+   ```
+
+2. **Run the pipeline inside the container:**
+   ```bash
+   docker compose run --rm project-iq python run_pipeline.py
+   ```
+
+3. Access the dashboard at `http://localhost:8501`.
+
+---
+
+## Environment Configuration
+
+Configuration values can be set via `.env` or system environment variables. The platform supports the canonical `PROJECTIQ_` prefix as well as the legacy `PROJECT_IQ_` prefix.
+
+| Variable | Default | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | *(None)* | Google Gemini API key. If omitted, the platform operates in local rule-based synthesis mode. |
+| `PROJECTIQ_ADMIN_PASSKEY` | *(None)* | Passkey required to unlock the Admin Portal in the dashboard. If unset, portal is locked. |
+| `PROJECTIQ_EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | SentenceTransformer model used for vector embeddings. |
+| `PROJECTIQ_LLM_MODEL` | `gemini-flash-latest` | Preferred Gemini model. Automatically falls back to available Flash models if unavailable. |
+| `PROJECTIQ_LOG_LEVEL` | `INFO` | Console and file logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
+| `PROJECTIQ_CHUNK_SIZE` | `450` | Target token size per chunk for RAG indexing. |
+| `PROJECTIQ_CHUNK_OVERLAP` | `80` | Overlapping token window between adjacent chunks. |
+| `PROJECTIQ_HARD_MAX_TOKENS` | `520` | Strict token ceiling per chunk to fit within embedding model context limits. |
+| `PROJECTIQ_DUPLICATE_THRESHOLD` | `0.82` | Cosine similarity threshold for flagging a project as a duplicate idea. |
+| `PROJECTIQ_MODERATE_THRESHOLD` | `0.65` | Cosine similarity threshold for flagging moderate conceptual overlap. |
+| `PROJECTIQ_MIN_RELEVANCE` | `0.20` | Minimum cosine relevance score required for RAG document retrieval. |
+| `STREAMLIT_SERVER_PORT` | `8501` | Port on which the Streamlit web dashboard serves traffic. |
+
+---
+
+## Pipeline Execution
+
+The CLI entrypoint `run_pipeline.py` orchestrates the extraction, cleaning, chunking, indexing, and proposal generation stages:
 
 ```bash
-# Build and start container in detached mode
-docker-compose up --build -d
-
-# Verify container health
-docker-compose ps
-
-# View live service logs
-docker-compose logs -f
+python run_pipeline.py [OPTIONS]
 ```
 
-Access the dashboard at `http://localhost:8501`.
+### CLI Flags & Options
+
+- `--reset` : Clears existing extracted files, cleaned data, chunks, and the ChromaDB vector database before running. Prompts for confirmation (`RESET`) to prevent accidental data loss.
+- `--skip-extract` : Skips the document extraction stage (useful when re-chunking or re-indexing already extracted text).
+- `--skip-clean` : Skips the PII cleaning and front-matter redaction stage.
+- `--skip-chunks` : Skips the chunking stage.
+- `--skip-index` : Skips indexing chunks into the ChromaDB vector store.
+- `--skip-gaps` : Skips generating novel proposals from future-scope sections.
 
 ---
 
-## 🛡️ Privacy, Security & Ethics Compliance
+## Modules Overview
 
-- **Administrative Stripping:** Covers, certificates, declarations, acknowledgments, and table of contents are purged prior to embedding.
-- **PII Shielding:** 7,385+ personal entities (student names, roll numbers, PRNs, guide names, personal phone numbers, emails) are shielded via spaCy Named Entity Recognition and regex pattern matching.
-- **Citation Preservation:** Formal academic literature references (e.g., `[1]`, `[2]`, `Vaswani et al. (2017)`) are strictly preserved to ensure valid retrieval and scholarly grounding.
-- **Git Protection:** The `.gitignore` is configured to prevent raw binary documents with personal details from leaking into public git repositories.
+### 1. Document Extraction (`src/extract.py`)
+- Standardizes diverse file formats (`.pdf`, `.docx`, `.doc`, `.pptx`) into clean structural JSON files.
+- Extracts document headings, section titles, page numbers, and parses department hierarchy (`data/raw/<Dept>/<Group>/...`).
+- Handles OCR for image-only scans using Tesseract.
+
+### 2. PII Redaction & Cleaning (`src/clean.py`)
+- Automatically redacts student names using spaCy Named Entity Recognition combined with capitalization heuristics.
+- Redacts contact numbers, roll/registration numbers, and email addresses.
+- Strips administrative front-matter (College certificates, acknowledgments, Bonafide certificates, table of contents).
+
+### 3. Section-Aware Chunking (`src/chunk_for_rag.py`)
+- Tokenizes cleaned text into discrete units bounded between 20 and 520 tokens.
+- Generates 6-gram shingles to calculate Jaccard similarities, tagging near-duplicate passages without dropping valuable context.
+
+### 4. Vector Store & Embeddings (`src/vector_store.py` & `src/embeddings.py`)
+- Utilizes ChromaDB with L2-normalized vectors (`all-MiniLM-L6-v2`) where dot product equals cosine similarity.
+- Thread-safe model caching and deterministic MD5 hashing ensure reproducible vector indexing.
+
+### 5. Originality & Duplicate Detection (`src/duplicate_detector.py`)
+- Evaluates candidate project abstracts or titles against all indexed projects.
+- Computes top-K matching projects, similarity percentiles, and provides detailed risk classifications.
+
+### 6. Gap Analyzer & Novelty Engine (`src/gap_analyzer.py`)
+- Scans chunks for limitation keywords (*"latency"*, *"dataset size"*, *"computational cost"*, *"future work"*).
+- Uses Google Gemini or an offline template generator to produce actionable project proposals with feasibility scores (3-10).
+
+### 7. RAG Conversational Engine (`src/rag_chat.py`)
+- Retrieves top matching chunks, filters out low-relevance matches, and constructs an evidence-grounded prompt.
+- Includes domain guardrails that prevent non-academic or out-of-scope queries from generating hallucinated responses.
+
+### 8. Quality Scorer (`src/quality_scorer.py`)
+- Deterministic heuristic evaluation producing scores across Methodology Depth, Metric Rigor, Tech Stack Coherence, and Problem Clarity.
+- Penalizes metric keyword stuffing and awards bonus points for empirical benchmark reporting.
 
 ---
 
-## ♿ Accessibility (a11y) & Design System
+## Web Dashboard Guide
 
-The user interface in `web/app.py` has been audited and built in accordance with **WCAG 2.1 AA** standards:
-- **Contrast Ratios:** Primary typography exceeds a 7:1 contrast ratio against the background; UI elements and interactive widgets exceed 3.0:1.
-- **Focus Rings:** Custom high-visibility `:focus-visible` styling (`3px solid #2563eb` with `2px` offset) for keyboard-only navigation.
-- **Multi-Modal Signaling:** Information is never conveyed by color alone; statuses combine distinct textual badges (`[APPROVED]`, `[HIGH RISK]`, `[REVISION NEEDED]`), icons, and colors.
-- **Screen Reader Utilities:** Semantic HTML landmarks, `.sr-only` accessibility classes, and ARIA attributes (`aria-label`, `aria-live="polite"`).
+The web interface is built with Streamlit and organized into six dedicated workspaces:
+
+1. **Originality Auditor**: Paste a prospective project title, problem statement, or abstract to inspect cosine similarity against past years, view matching projects, and obtain duplicate risk verdicts.
+2. **RAG Academic Assistant**: Chat with past projects to ask questions like *"What architectures were used for medical imaging in 2024?"* with explicit citations and section quotes.
+3. **Research Gap & Novel Proposals**: Explore extracted institutional project limitations and browse AI-synthesized novel project ideas filtered by academic domain.
+4. **Quality Scorecard**: Paste or upload project drafts to receive an instant rubric score breakdown with actionable suggestions for academic improvement.
+5. **Team & Faculty Matcher**: Input student technical skills and target domains to find the best faculty advisors and complementary peer roles.
+6. **Admin Portal**: Enter the admin passkey to inspect database metrics, trigger pipeline updates, view logs, and adjust similarity thresholds dynamically.
 
 ---
 
-## 📄 License
+## Testing & Quality Assurance
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+Project-IQ includes a comprehensive offline testing suite that runs entirely without requiring live external API connections or heavy ML model downloads:
+
+```bash
+pytest
+```
+
+### Test Suite Structure
+- `tests/conftest.py`: Implements deterministic MD5-based fake vector embeddings and tokenizers for fast, lightweight testing.
+- `tests/test_e2e_offline.py`: Validates the end-to-end lifecycle: DOCX generation -> extraction -> PII cleaning -> chunking -> vector indexing -> originality detection -> gap analysis -> RAG chat.
+- `tests/test_regressions.py`: Verifies edge cases including hierarchy parsing, PII redactions, decimal series protection, metric-stuffing defenses, and environment variable fallbacks.
+
+All 13 test suites pass reliably and execute in seconds.
+
+---
+
+## Privacy, Compliance & Redaction
+
+Institutional final-year projects often contain sensitive student and faculty information. Project-IQ is built from the ground up to uphold student privacy:
+
+- **Automatic Name Redaction**: Removes detected personal names from document bodies and metadata.
+- **Credential & Contact Redaction**: Strips roll numbers, phone numbers, and email addresses.
+- **Git Security**: `.gitignore` strictly excludes all raw documents (`data/raw/*`), extracted text (`data/extracted/*`), cleaned text (`data/cleaned/*`), ChromaDB binaries (`data/chroma_db/*`), and local environment secrets (`.env`).
+- **Offline Safe**: Operates completely on-premises when Gemini API keys are omitted, ensuring zero institutional text is sent to third-party services.
+
+---
+
+## Troubleshooting & Diagnostics
+
+Run the bundled diagnostic script at any time to verify system requirements:
+
+```bash
+python scripts/doctor.py
+```
+
+### Common Issues & Resolutions
+
+- **`spaCy model en_core_web_sm missing`**:
+  ```bash
+  python -m spacy download en_core_web_sm
+  ```
+- **`fitz / PyMuPDF deprecation warning`**:
+  Normal and non-breaking; PyMuPDF is functional across all supported Python versions.
+- **`LibreOffice missing (optional)`**:
+  Only needed if your archive includes legacy binary `.doc` files (pre-2007 Word). Convert them to `.docx` or install LibreOffice and ensure `soffice` is on your PATH.
+- **`Tesseract OCR missing (optional)`**:
+  Only required if your documents contain scanned image-only PDFs. Install Tesseract OCR and add it to your system PATH.
+- **`Admin Portal Locked`**:
+  Ensure `PROJECTIQ_ADMIN_PASSKEY` is set in your `.env` file and matches the passkey entered in the web interface.
+
+---
+
+## Contributing & License
+
+Contributions, bug reports, and pull requests are welcome. Please ensure that all tests pass (`pytest`) and that code complies with standard Python formatting conventions before submitting pull requests.
+
+Distributed under the **Apache 2.0 License**. See `LICENSE` for details.

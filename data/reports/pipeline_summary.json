@@ -1,0 +1,15 @@
+{
+  "extracted_files": 249,
+  "cleaned_docs": 242,
+  "total_chunks": 4612,
+  "indexed_chunks": 4230,
+  "proposals_generated": 2,
+  "stage_seconds": {
+    "extract": 113.64,
+    "clean": 69.31,
+    "chunk": 44.77,
+    "index": 119.35,
+    "ideation": 1.75
+  },
+  "total_time_seconds": 348.82
+}

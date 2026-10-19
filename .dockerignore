@@ -12,3 +12,10 @@ scripts/
 *_test/
 data/*_test/
 *.zip
+.env
+.env.*
+!.env.example
+.claude/
+.streamlit/secrets.toml
+data/
+logs/

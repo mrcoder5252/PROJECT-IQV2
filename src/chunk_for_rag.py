@@ -313,7 +313,7 @@ def chunk_all(cleaned_dir: str | Path, output_file: str | Path) -> List[Dict[str
                     skipped_small += 1
                     continue
 
-                chunk_id = make_chunk_id(doc_id, category, record_index, kept_index)
+                chunk_id = make_chunk_id(doc_id, category, 0, kept_index)  # id depends only on (document, position): stable across re-runs
                 tc = count_tokens(piece)
                 ml_feats = extract_ml_features(piece)
 

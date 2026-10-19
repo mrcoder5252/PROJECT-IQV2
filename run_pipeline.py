@@ -39,7 +39,8 @@ def run_full_pipeline(
     chroma_dir: Path,
     reports_dir: Path,
     reset: bool = False,
-    domain_filter: str | None = None
+    domain_filter: str | None = None,
+    assume_yes: bool = False,
 ) -> Dict[str, Any]:
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -51,15 +52,21 @@ def run_full_pipeline(
     logger.info("STARTING PROJECT-IQ PIPELINE")
     logger.info("=" * 60)
     start_total = time.time()
+    stage_seconds: Dict[str, float] = {}
 
     if reset:
-        logger.info("Reset requested: clearing previous processed outputs...")
-        for p in [extracted_dir, cleaned_dir, chunks_file.parent, chroma_dir, reports_dir]:
-            if p.exists():
-                if p.is_file():
-                    p.unlink()
-                else:
-                    shutil.rmtree(p, ignore_errors=True)
+        targets = [p for p in (extracted_dir, cleaned_dir, chunks_file.parent, chroma_dir, reports_dir) if p.exists()]
+        logger.warning("--reset will PERMANENTLY DELETE these paths (raw documents are never touched):")
+        for p in targets:
+            logger.warning("  %s", p)
+        if not assume_yes and input("Type RESET to confirm: ").strip() != "RESET":
+            logger.info("Reset cancelled; nothing was deleted.")
+            return {"cancelled": True}
+        for p in targets:
+            if p.is_file():
+                p.unlink()
+            else:
+                shutil.rmtree(p, ignore_errors=True)
 
     extracted_dir.mkdir(parents=True, exist_ok=True)
     cleaned_dir.mkdir(parents=True, exist_ok=True)
@@ -71,36 +78,40 @@ def run_full_pipeline(
     logger.info("[STAGE 1/5] Extracting raw multi-format academic documents...")
     t0 = time.time()
     manifest = extract_all(raw_dir, extracted_dir)
+    stage_seconds["extract"] = round(time.time() - t0, 2)
     logger.info(f"Extraction completed in {time.time() - t0:.2f}s ({manifest['extracted_files']} files extracted)")
 
     # 2. Cleaning & Privacy
     logger.info("[STAGE 2/5] Cleaning administrative front-matter & sanitizing PII...")
     t0 = time.time()
     clean_summary = clean_all(extracted_dir, cleaned_dir, reports_dir)
+    stage_seconds["clean"] = round(time.time() - t0, 2)
     logger.info(f"Sanitization completed in {time.time() - t0:.2f}s ({clean_summary['cleaned_documents']} documents cleaned)")
 
     # 3. Chunking & Deduplication
     logger.info("[STAGE 3/5] Token-bounded chunking and near-duplicate clustering...")
     t0 = time.time()
     chunks = chunk_all(cleaned_dir, chunks_file)
+    stage_seconds["chunk"] = round(time.time() - t0, 2)
     logger.info(f"Chunking completed in {time.time() - t0:.2f}s ({len(chunks)} chunks produced)")
 
     # 4. Vector Storage & Indexing
     logger.info("[STAGE 4/5] Indexing canonical chunks into ChromaDB...")
     t0 = time.time()
     store = ProjectIQVectorStore(db_path=chroma_dir)
-    indexed_count = store.index_chunks(chunks_file)
+    indexed_count = store.index_chunks(chunks_file, prune=True)  # drop ids left over from earlier runs
+    stage_seconds["index"] = round(time.time() - t0, 2)
     logger.info(f"Indexing completed in {time.time() - t0:.2f}s ({indexed_count} chunks indexed)")
 
     # 5. Gap Analysis & Project Ideation
     logger.info("[STAGE 5/5] Extracting research gaps and synthesizing novel project proposals...")
     t0 = time.time()
     analyzer = GapAnalyzer(vector_store=store)
-    gaps = analyzer.extract_project_gaps(top_k_per_section=10)
     proposals = analyzer.generate_novel_projects(domain_filter=domain_filter, num_proposals=2)
 
     proposals_file = reports_dir / "novel_project_proposals.json"
     proposals_file.write_text(json.dumps(proposals, ensure_ascii=False, indent=2), encoding="utf-8")
+    stage_seconds["ideation"] = round(time.time() - t0, 2)
     logger.info(f"Ideation completed in {time.time() - t0:.2f}s ({len(proposals)} proposals generated)")
 
     total_time = time.time() - start_total
@@ -116,8 +127,8 @@ def run_full_pipeline(
         "cleaned_docs": clean_summary["cleaned_documents"],
         "total_chunks": len(chunks),
         "indexed_chunks": indexed_count,
-        "gaps_found": len(gaps),
         "proposals_generated": len(proposals),
+        "stage_seconds": stage_seconds,
         "total_time_seconds": round(total_time, 2)
     }
 
@@ -137,6 +148,7 @@ def main():
     parser.add_argument("--chroma-dir", default=str(config.chroma_dir), help="Path to ChromaDB directory")
     parser.add_argument("--reports-dir", default=str(config.reports_dir), help="Path to reports directory")
     parser.add_argument("--reset", action="store_true", help="Clear all previous output data before running")
+    parser.add_argument("--yes", action="store_true", help="Skip the RESET confirmation prompt (CI / Docker)")
     parser.add_argument("--domain", default=None, help="Optional domain filter for proposal generation")
     args = parser.parse_args()
 
@@ -148,7 +160,8 @@ def main():
         chroma_dir=Path(args.chroma_dir),
         reports_dir=Path(args.reports_dir),
         reset=args.reset,
-        domain_filter=args.domain
+        domain_filter=args.domain,
+        assume_yes=args.yes,
     )
 
 
