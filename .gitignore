@@ -67,3 +67,7 @@ Thumbs.db
 
 # Superseded vector stores
 chroma_db_old*/
+
+# Local UI Backups
+web/app_fixed.py
+web/app_perfect_saved.py
