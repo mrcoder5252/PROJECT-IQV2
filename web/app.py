@@ -1083,7 +1083,6 @@ def load_telemetry_data():
 
 
 df_chunks, rep_data, man_data = load_telemetry_data()
-@st.cache_data
 def get_cached_db_count():
     try:
         return store.count()
@@ -1435,8 +1434,9 @@ if portal_mode == "Student Workspace":
                 section_header("Closest Historical Archive Matches", icon_name="database")
                 for i, m in enumerate(matches):
                     sim = float(m.get("similarity_pct", 0) or 0)
+                    proj_display = m.get("project_name") or m.get("source_file") or f"Project {i + 1}"
                     with st.expander(
-                        f"#{i + 1} · {m.get('project_name', 'Unknown')}  —  {sim:.1f}% similarity"
+                        f"#{i + 1} · {proj_display}  —  {sim:.1f}% similarity"
                     ):
                         p1, p2, p3 = st.columns(3)
                         p1.markdown(f"**Department:** {m.get('department', 'General')}")

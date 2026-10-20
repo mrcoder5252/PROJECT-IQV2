@@ -101,18 +101,23 @@ class DuplicateDetector:
         found_theme_ids: List[str] = []
 
         for r in results:
-            doc_id = r["metadata"].get("document_id") or r["metadata"].get("source_file") or r.get("chunk_id")
+            meta = r.get("metadata", {})
+            doc_id = meta.get("document_id") or meta.get("source_file") or meta.get("filename") or r.get("chunk_id")
             text = r.get("text", "")
             if doc_id not in seen_docs and len(unique_matches) < top_k:
                 seen_docs.add(doc_id)
+                sf = meta.get("source_file") or meta.get("filename") or "Unknown"
+                proj = meta.get("project_name")
+                if not proj or proj == "Unknown":
+                    proj = sf
                 unique_matches.append({
                     "similarity_pct": round(r.get("similarity", 0.0) * 100, 1),
-                    "source_file": r["metadata"].get("source_file", "Unknown"),
-                    "project_name": r["metadata"].get("project_name", "Unknown"),
-                    "department": r["metadata"].get("department", "General"),
-                    "group_id": r["metadata"].get("group_id", "General"),
-                    "category": r["metadata"].get("category", "Report"),
-                    "section": r["metadata"].get("section", "General"),
+                    "source_file": sf,
+                    "project_name": proj,
+                    "department": meta.get("department", "General"),
+                    "group_id": meta.get("group_id", "General"),
+                    "category": meta.get("category", "Report"),
+                    "section": meta.get("section", "General"),
                     "excerpt": text[:320] + ("..." if len(text) > 320 else "")
                 })
 
