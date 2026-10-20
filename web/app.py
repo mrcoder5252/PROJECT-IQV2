@@ -673,8 +673,13 @@ db_count = store.count()
 total_redactions = sum(rep_data.get("total_redactions", {}).values()) if (rep_data and "total_redactions" in rep_data) else 0
 
 # Check background Gemini API key and spaCy NER
-if not os.getenv("GEMINI_API_KEY") and hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-    os.environ["GEMINI_API_KEY"] = str(st.secrets["GEMINI_API_KEY"])
+if not os.getenv("GEMINI_API_KEY"):
+    try:
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            os.environ["GEMINI_API_KEY"] = str(st.secrets["GEMINI_API_KEY"])
+    except Exception:
+        # Streamlit raises StreamlitSecretNotFoundError if secrets.toml does not exist
+        pass
 
 has_gemini = bool(os.getenv("GEMINI_API_KEY") or config.gemini_api_key)
 ner_active = is_ner_available()
