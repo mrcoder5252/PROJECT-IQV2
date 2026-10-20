@@ -931,6 +931,61 @@ def score_gauge(value: float, label: str, color_hex: str, max_val: float = 100.0
     return fig
 
 
+def originality_gauge(value: float, max_val: float = 100.0) -> go.Figure:
+    """Dedicated orange-themed meter specifically engineered for the Originality & Duplicate Checker."""
+    val = max(0.0, min(max_val, float(value)))
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=val,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={
+            "suffix": "%",
+            "valueformat": ".1f",
+            "font": {"size": 44, "color": "#FFFFFF", "family": "Space Grotesk, Plus Jakarta Sans, sans-serif"}
+        },
+        title={
+            "text": "Originality Score (%)",
+            "font": {"size": 17, "color": "#FDBA74", "family": "Plus Jakarta Sans, sans-serif"}
+        },
+        gauge={
+            "axis": {
+                "range": [0, max_val],
+                "tickvals": [0, 20, 40, 60, 80, 100],
+                "ticktext": ["0", "20", "40", "60", "80", "100"],
+                "tickcolor": "#F97316",
+                "tickwidth": 2,
+                "tickfont": {"color": "#CBD5E1", "size": 12, "family": "Plus Jakarta Sans"}
+            },
+            "bar": {
+                "color": "#F97316",
+                "thickness": 0.32
+            },
+            "bgcolor": "rgba(249, 115, 22, 0.04)",
+            "borderwidth": 1.5,
+            "bordercolor": "rgba(249, 115, 22, 0.35)",
+            "steps": [
+                {"range": [0, max_val * 0.35], "color": "rgba(249, 115, 22, 0.12)"},
+                {"range": [max_val * 0.35, max_val * 0.70], "color": "rgba(249, 115, 22, 0.22)"},
+                {"range": [max_val * 0.70, max_val], "color": "rgba(249, 115, 22, 0.36)"},
+            ],
+            "threshold": {
+                "line": {"color": "#FB923C", "width": 4},
+                "thickness": 0.85,
+                "value": val,
+            },
+        }
+    ))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Plus Jakarta Sans, sans-serif", color="#FFFFFF"),
+        height=340,
+        margin=dict(t=50, b=15, l=35, r=35),
+        uirevision=True,
+    )
+    return fig
+
+
 def render_citation_card(src: dict) -> str:
     """Formats an institutional citation into a safe, polished dark HTML card."""
     idx = safe_html(src.get("index", 1))
@@ -1324,26 +1379,33 @@ if portal_mode == "Student Workspace":
             )
 
         st.markdown("")
+        if "orig_result" not in st.session_state:
+            st.session_state.orig_result = None
+
         if st.button("Assess Originality Risk", type="primary", use_container_width=True):
             with st.spinner("Scanning institutional archive for semantic overlap..."):
-                dup_res = detector.check_originality(title=test_title, abstract=test_abstract, top_k=5)
+                st.session_state.orig_result = detector.check_originality(title=test_title, abstract=test_abstract, top_k=5)
 
+        if st.session_state.orig_result is not None:
+            dup_res = st.session_state.orig_result
             st.markdown('<hr class="divider-glow">', unsafe_allow_html=True)
 
             level = dup_res.get("verdict_level", "info")
             pill_text, pill_class = verdict_pill(level)
-            accent = {"success": "#10B981", "warning": "#F59E0B", "danger": "#EF4444"}.get(level, "#6366F1")
+            max_sim = float(dup_res.get("max_similarity_pct", 0.0) or 0.0)
 
             gauge_col, detail_col = st.columns([1, 1.35], gap="large")
 
             with gauge_col:
+                section_header("Verdict & Originality Score", icon_name="shield_check")
                 st.plotly_chart(
-                    score_gauge(dup_res["originality_score"], "Originality Score", accent),
+                    originality_gauge(dup_res["originality_score"]),
                     use_container_width=True
                 )
+                badge_label = f"{pill_text} ({max_sim:.1f}% Historical Similarity)" if max_sim > 0 else pill_text
                 st.markdown(
                     f'<div style="text-align:center; margin-top:-0.5rem;">'
-                    f'<span class="meta-pill {pill_class}" style="font-size:0.95rem; padding:0.45rem 1.2rem;">{pill_text}</span>'
+                    f'<span class="meta-pill {pill_class}" style="font-size:0.95rem; padding:0.45rem 1.2rem;">{safe_html(badge_label)}</span>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
