@@ -224,6 +224,22 @@ html, body, [class*="css"] {
     background: transparent !important;
 }
 
+/* Completely remove Deploy button from top right corner */
+[data-testid="stDeployButton"],
+.stDeployButton,
+div[data-testid="stToolbar"] > button:first-child,
+div[data-testid="stHeaderActionElements"] > button:first-child,
+header [data-testid="stToolbarAction"] {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 /* ---------- Sidebar Styling ---------- */
 [data-testid="stSidebar"] {
     background: 
