@@ -10,4 +10,5 @@ font = "sans serif"
 headless = true
 enableCORS = false
 enableXsrfProtection = true
-runOnSave = true
+runOnSave = false
+fileWatcherType = "none"

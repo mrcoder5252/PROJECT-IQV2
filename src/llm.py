@@ -1,5 +1,5 @@
-"""Gemini call helper that survives retired models: on a 404 it asks the API which models the key can
-actually use, picks the newest stable Flash model, remembers it, and retries once."""
+"""Gemini call helper that survives retired models: on error (404, 503, 504, 429) it falls back across
+fast, verified Flash models, remembers the working one, and avoids hanging the UI."""
 
 from __future__ import annotations
 
@@ -11,11 +11,18 @@ from src.logger import get_logger
 
 logger = get_logger("project_iq.llm")
 _resolved: dict = {}
-_SKIP = ("lite", "image", "tts", "live", "audio", "embedding", "exp", "preview", "thinking", "robotics", "computer")
+
+# Fast, verified working models in priority order
+_FALLBACK_CANDIDATES = [
+    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+]
 
 
-def make_client(api_key: str, timeout_s: int = 45):
-    """Gemini client with a hard request timeout so the UI can never hang on a slow/retrying API call."""
+def make_client(api_key: str, timeout_s: int = 25):
+    """Gemini client with a hard request timeout so the UI can never hang on a slow API call."""
     from google import genai
     try:
         from google.genai import types
@@ -30,17 +37,14 @@ def current_model() -> str:
 
 def _usable_models(client) -> List[str]:
     names = []
-    for m in client.models.list():
-        actions = getattr(m, "supported_actions", None) or []
-        if "generateContent" in actions:
-            names.append(str(m.name).replace("models/", ""))
+    try:
+        for m in client.models.list():
+            actions = getattr(m, "supported_actions", None) or []
+            if "generateContent" in actions:
+                names.append(str(m.name).replace("models/", ""))
+    except Exception:
+        pass
     return names
-
-
-def _pick(names: List[str]) -> Optional[str]:
-    flash = [n for n in names if "flash" in n and not any(s in n for s in _SKIP)]
-    flash.sort(key=lambda n: [int(x) for x in re.findall(r"\d+", n)], reverse=True)
-    return flash[0] if flash else None
 
 
 def _fast_config(gen_config: Any):
@@ -63,23 +67,49 @@ def _call(client, model: str, prompt: str, cfg: Any) -> str:
         if cfg is not None and ("thinking" in msg.lower() or "INVALID_ARGUMENT" in msg):
             logger.info("Model rejected thinking config; retrying without it.")
             return client.models.generate_content(model=model, contents=prompt).text
-        if "504" in msg or "DEADLINE" in msg or "503" in msg or "UNAVAILABLE" in msg:
-            logger.warning("Transient Gemini error (%s); retrying once.", msg[:80])
-            return client.models.generate_content(model=model, contents=prompt, **kwargs).text
         raise
 
 
 def generate_text(client, prompt: str, gen_config: Any = None) -> str:
-    model = current_model()
+    primary = current_model()
     cfg = _fast_config(gen_config)
-    try:
-        return _call(client, model, prompt, cfg)
-    except Exception as exc:
-        if "404" not in str(exc) and "NOT_FOUND" not in str(exc):
-            raise
-        alt = _pick(_usable_models(client))
-        if not alt or alt == model:
-            raise
-        logger.warning("Model '%s' unavailable; switching to '%s'. Set PROJECTIQ_LLM_MODEL=%s to make this permanent.", model, alt, alt)
-        _resolved["model"] = alt
-        return _call(client, alt, prompt, cfg)
+
+    # Order models: primary first, followed by fallback candidates
+    models_to_try = [primary] + [m for m in _FALLBACK_CANDIDATES if m != primary]
+
+    last_exc = None
+    for model in models_to_try:
+        try:
+            res = _call(client, model, prompt, cfg)
+            if model != primary and _resolved.get("model") != model:
+                logger.info("Switched to working model '%s'.", model)
+                _resolved["model"] = model
+            return res
+        except Exception as exc:
+            msg = str(exc)
+            logger.warning("Gemini model '%s' failed (%s). Trying fallback candidate...", model, msg[:80])
+            last_exc = exc
+            # If thinking config was rejected, retry without config once for the same model
+            if cfg is not None:
+                try:
+                    res = _call(client, model, prompt, None)
+                    if model != primary:
+                        _resolved["model"] = model
+                    return res
+                except Exception:
+                    pass
+
+    # If all candidate fallbacks failed, attempt auto-discovery from client.models.list()
+    if last_exc:
+        discovered = _usable_models(client)
+        flash_discovered = [m for m in discovered if "flash" in m and m not in models_to_try]
+        for alt in flash_discovered[:2]:
+            try:
+                res = _call(client, alt, prompt, None)
+                _resolved["model"] = alt
+                return res
+            except Exception:
+                pass
+        raise last_exc
+
+    raise RuntimeError("No Gemini models available.")

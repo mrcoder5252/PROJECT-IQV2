@@ -69,7 +69,7 @@ class Config:
 
     # --- models ------------------------------------------------------------
     embedding_model_name: str = field(default_factory=lambda: _env("EMBEDDING_MODEL", "all-MiniLM-L6-v2"))  # type: ignore[arg-type]
-    llm_model_name: str = field(default_factory=lambda: _env("LLM_MODEL", "gemini-flash-latest"))  # type: ignore[arg-type]
+    llm_model_name: str = field(default_factory=lambda: _env("LLM_MODEL", "gemini-3.5-flash"))  # type: ignore[arg-type]
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))  # type: ignore[arg-type]
 
     # --- chunking ----------------------------------------------------------
