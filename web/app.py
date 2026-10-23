@@ -1363,6 +1363,8 @@ if portal_mode == "Student Workspace":
     # =========================================================
     # Module 2: Originality Checker — AMBER / RED (Radar identity)
     # =========================================================
+    # Module 2: Originality Checker — AMBER / RED (Radar identity)
+    # =========================================================
     elif student_nav == "Originality & Duplicate Checker":
         set_module_theme("originality")
         render_hero_header(
@@ -1376,17 +1378,17 @@ if portal_mode == "Student Workspace":
         col_in1, col_in2 = st.columns([1, 1], gap="large")
         with col_in1:
             section_header("Propose Your Capstone Concept", icon_name="file_text")
-            test_title = st.text_input("Proposed Project Title", "Acupoint Therapy Android Application")
-            test_abstract = st.text_area("Proposed Project Summary", "An Android mobile app developed with Firebase for pain relief guiding patients through questionnaires.", height=130)
+            test_title = st.text_input("Proposed Project Title", "Acupoint Therapy Android Application", key="orig_title_input")
+            test_abstract = st.text_area("Proposed Project Summary", "An Android mobile app developed with Firebase for pain relief guiding patients through questionnaires.", height=130, key="orig_abstract_input")
         with col_in2:
             section_header("Scan Configuration & Thresholds", icon_name="compass_gap")
             st.markdown(
                 '<div class="piq-card fade-up">'
                 '<div class="card-kicker">How it works</div>'
                 '<div class="card-body">'
-                'Your proposal is embedded and compared against every indexed historical project report. '
-                'A <b style="color:#FCD34D;">semantic similarity</b> score above the duplicate threshold flags high redundancy, '
-                'while a low score confirms strong academic originality.<br><br>'
+                'Your proposal is embedded and compared against every indexed historical project report in ChromaDB. '
+                'A <b style="color:#FCD34D;">semantic similarity</b> score above 70% flags high duplicate redundancy, '
+                'between 45% and 70% indicates moderate overlap, and below 45% confirms strong originality.<br><br>'
                 'The scanner also harvests technical themes from matched reports to generate '
                 '<b style="color:#FCA5A5;">differentiation strategies</b> tailored to your risk profile.'
                 '</div></div>',
@@ -1394,10 +1396,22 @@ if portal_mode == "Student Workspace":
             )
 
         st.markdown("")
-        if "orig_result" not in st.session_state:
-            st.session_state.orig_result = None
+        col_btn1, col_btn2 = st.columns([2, 1])
+        with col_btn1:
+            scan_clicked = st.button("Assess Originality Risk", type="primary", use_container_width=True)
+        with col_btn2:
+            clear_clicked = st.button("Reset Proposal Form", type="secondary", use_container_width=True)
 
-        if st.button("Assess Originality Risk", type="primary", use_container_width=True):
+        if clear_clicked:
+            st.session_state["orig_result"] = None
+            st.rerun()
+
+        if "orig_result" not in st.session_state or st.session_state.orig_result is None:
+            # Auto-run scan on initial concept so the orange meter and closest matches are immediately visible
+            with st.spinner("Initializing originality scan across institutional archive..."):
+                st.session_state.orig_result = detector.check_originality(title=test_title, abstract=test_abstract, top_k=5)
+
+        if scan_clicked:
             with st.spinner("Scanning institutional archive for semantic overlap..."):
                 st.session_state.orig_result = detector.check_originality(title=test_title, abstract=test_abstract, top_k=5)
 
@@ -1408,13 +1422,14 @@ if portal_mode == "Student Workspace":
             level = dup_res.get("verdict_level", "info")
             pill_text, pill_class = verdict_pill(level)
             max_sim = float(dup_res.get("max_similarity_pct", 0.0) or 0.0)
+            orig_score = float(dup_res.get("originality_score", 0.0) or 0.0)
 
             gauge_col, detail_col = st.columns([1, 1.35], gap="large")
 
             with gauge_col:
                 section_header("Verdict & Originality Score", icon_name="shield_check")
                 st.plotly_chart(
-                    originality_gauge(dup_res["originality_score"]),
+                    originality_gauge(orig_score),
                     use_container_width=True
                 )
                 badge_label = f"{pill_text} ({max_sim:.1f}% Historical Similarity)" if max_sim > 0 else pill_text
@@ -1430,9 +1445,9 @@ if portal_mode == "Student Workspace":
                 st.info(dup_res.get("executive_summary", ""))
                 c1, c2, c3 = st.columns(3)
                 with c1:
-                    stat_card(f"{dup_res['originality_score']:.1f}%", "Originality", 0.0)
+                    stat_card(f"{orig_score:.1f}%", "Originality Score", 0.0)
                 with c2:
-                    stat_card(f"{dup_res.get('max_similarity_pct', 0):.1f}%", "Max Overlap", 0.1)
+                    stat_card(f"{max_sim:.1f}%", "Max Overlap", 0.1)
                 with c3:
                     stat_card(str(len(dup_res.get("matching_projects", []))), "Closest Matches", 0.2)
 
@@ -1484,21 +1499,30 @@ if portal_mode == "Student Workspace":
             )
         with col_cfg1:
             section_header("Extraction Depth Parameters", icon_name="gauge_score")
-            top_k = st.slider("Max gaps per report section", 3, 20, 10,
+            top_k = st.slider("Max gaps per report section", 3, 25, 10,
                               help="Higher values retrieve more limitation statements per report section.")
         with col_cfg2:
             section_header("Corpus Snapshot", icon_name="bar_chart")
             stat_card(f"{db_count:,}", "Indexed Passages", 0.0)
 
-        if st.button("Mine Research Gaps", type="primary", use_container_width=True):
+        # Initialize session state for persistent gaps display
+        if "mined_gaps" not in st.session_state:
+            st.session_state["mined_gaps"] = gap_analyzer.extract_project_gaps(top_k_per_section=10)
+            st.session_state["mined_topic"] = ""
+            st.session_state["mined_proposals"] = None
+
+        col_mine_btn, col_synth_btn = st.columns([1, 1], gap="medium")
+        with col_mine_btn:
+            mine_clicked = st.button("Mine Research Gaps", type="primary", use_container_width=True)
+        with col_synth_btn:
+            synth_clicked = st.button("Synthesize Novel Proposals for These Gaps", type="secondary", use_container_width=True)
+
+        if mine_clicked:
             topic = (gap_topic or "").strip()
             with st.spinner(f"Mining gaps for “{topic}”..." if topic else "Mining limitations & future-scope statements across the archive..."):
                 extracted_gaps = []
-
                 if topic:
-                    # Topic-driven semantic search: pull the most relevant passages, then keep
-                    # sentences that state a limitation / future-scope indicator.
-                    results = store.query_similar(query_text=topic, n_results=25, min_similarity=0.12)
+                    results = store.query_similar(query_text=topic, n_results=30, min_similarity=0.12)
                     for r in results:
                         meta = r.get("metadata") or {}
                         text = r.get("text") or ""
@@ -1511,70 +1535,126 @@ if portal_mode == "Student Workspace":
                                 "text": s,
                                 "similarity_pct": sim_pct,
                                 "source_file": meta.get("source_file", "Unknown"),
+                                "department": meta.get("department", "General"),
+                                "group_id": meta.get("group_id", "General"),
+                                "full_text": text
                             })
-                    # Fallback: no indicator sentences → show closest related passages instead
                     if not extracted_gaps:
-                        for r in results[:8]:
+                        for r in results[:10]:
                             meta = r.get("metadata") or {}
                             extracted_gaps.append({
                                 "section": f"{meta.get('section') or 'Related'}",
                                 "text": r.get("text") or "",
                                 "similarity_pct": round(float(r.get("similarity", 0) or 0) * 100, 1),
                                 "source_file": meta.get("source_file", "Unknown"),
+                                "department": meta.get("department", "General"),
+                                "group_id": meta.get("group_id", "General"),
+                                "full_text": r.get("text") or ""
                             })
                 else:
                     extracted_gaps = gap_analyzer.extract_project_gaps(top_k_per_section=top_k)
 
-            st.markdown('<hr class="divider-glow">', unsafe_allow_html=True)
-            top_col1, top_col2 = st.columns([1, 2], gap="large")
-            with top_col1:
-                stat_card(str(len(extracted_gaps)), "Gaps Discovered", 0.0)
-            with top_col2:
-                if topic:
+                st.session_state["mined_gaps"] = extracted_gaps
+                st.session_state["mined_topic"] = topic
+                st.session_state["mined_proposals"] = None
+
+        if synth_clicked:
+            active_topic = st.session_state.get("mined_topic", "")
+            with st.spinner("Synthesizing novel project proposals grounded in extracted gaps..."):
+                proposals = gap_analyzer.generate_novel_projects(domain_filter=active_topic or None, num_proposals=3)
+                st.session_state["mined_proposals"] = proposals
+
+        extracted_gaps = st.session_state.get("mined_gaps") or []
+        current_topic = st.session_state.get("mined_topic", "")
+
+        st.markdown('<hr class="divider-glow">', unsafe_allow_html=True)
+        top_col1, top_col2 = st.columns([1, 2], gap="large")
+        with top_col1:
+            stat_card(str(len(extracted_gaps)), "Gaps Discovered", 0.0)
+        with top_col2:
+            if current_topic:
+                st.markdown(
+                    f'<div class="piq-card fade-up" style="animation-delay:0.1s;">'
+                    f'<div class="card-kicker">Topic search · {safe_html(current_topic)}</div>'
+                    f'<div class="card-body">Gaps below are <b style="color:#6EE7B7;">limitation or future-scope statements</b> '
+                    f'semantically closest to your typed topic. Click "Synthesize Novel Proposals" above to automatically generate '
+                    f'gap-closing capstone project architectures.</div></div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    '<div class="piq-card fade-up" style="animation-delay:0.1s;">'
+                    '<div class="card-kicker">Archive Scope Overview</div>'
+                    '<div class="card-body">Each card below is an authentic <b style="color:#6EE7B7;">limitation or future-scope statement</b> '
+                    'mined across final-year engineering projects in ChromaDB. Use these identified bottlenecks to formulate your thesis scope.</div></div>',
+                    unsafe_allow_html=True
+                )
+
+        # If proposals were synthesized, display them prominently
+        mined_props = st.session_state.get("mined_proposals")
+        if mined_props:
+            section_header("AI Synthesized Project Proposals (Gap Solutions)", icon_name="lightbulb")
+            for idx, prop in enumerate(mined_props, 1):
+                with st.container():
                     st.markdown(
-                        f'<div class="piq-card fade-up" style="animation-delay:0.1s;">'
-                        f'<div class="card-kicker">Topic search · {safe_html(topic)}</div>'
-                        f'<div class="card-body">Gaps below are <b style="color:#6EE7B7;">limitation or future-scope statements</b> '
-                        f'semantically closest to your typed topic, with a relevance match score per card. '
-                        f'Leave the search box empty next time to sweep the whole archive instead.</div></div>',
+                        f'<div class="piq-card fade-up" style="border-left: 4px solid var(--a1); margin-bottom: 1.2rem;">'
+                        f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+                        f'<span class="card-kicker">Novel Proposal #{idx} · {safe_html(prop.get("domain", "Engineering"))}</span>'
+                        f'<span class="meta-pill meta-pill-green">Feasibility: {prop.get("feasibility_score", 8)}/10</span>'
+                        f'</div>'
+                        f'<h3 style="margin: 0.4rem 0 0.8rem 0; color:#FFFFFF;">{safe_html(prop.get("title", "Untitled Proposal"))}</h3>'
+                        f'<p style="color:#CBD5E1; margin-bottom: 0.6rem;"><b>Problem Solved:</b> {safe_html(prop.get("problem_statement", ""))}</p>'
+                        f'<p style="color:#A7F3D0; margin-bottom: 0.6rem;"><b>Core Innovation:</b> {safe_html(prop.get("core_innovation", ""))}</p>'
+                        f'<p style="color:#E2E8F0; margin-bottom: 0.8rem;"><b>Methodology:</b> {safe_html(prop.get("proposed_methodology", ""))}</p>'
+                        f'</div>',
                         unsafe_allow_html=True
                     )
-                else:
-                    st.markdown(
-                        '<div class="piq-card fade-up" style="animation-delay:0.1s;">'
-                        '<div class="card-kicker">Reading guide</div>'
-                        '<div class="card-body">Each card below is a <b style="color:#6EE7B7;">limitation or future-scope statement</b> '
-                        'extracted from historical project reports. Cluster these by theme to spot under-explored '
-                        'problem spaces for your next capstone — or type a topic above for a focused search.</div></div>',
-                        unsafe_allow_html=True
-                    )
+                    c_stack, c_cite = st.columns([1.5, 1])
+                    with c_stack:
+                        t_pills = [f'<span class="meta-pill meta-pill-cyan">{safe_html(t)}</span>' for t in prop.get("tech_stack", [])]
+                        st.markdown(f'<div style="display:flex; gap:0.4rem; flex-wrap:wrap;">{" ".join(t_pills)}</div>', unsafe_allow_html=True)
+                    with c_cite:
+                        cites = prop.get("past_project_citations", [])
+                        if cites:
+                            cite_txt = ", ".join([c.get("source_file", "") for c in cites if c.get("source_file")])
+                            st.caption(f"Addresses gaps from: {safe_html(cite_txt)}")
+                    st.markdown('<div style="height: 0.6rem;"></div>', unsafe_allow_html=True)
 
-            gaps_to_show = extracted_gaps[:12]
-            cols = st.columns(2)
-            for i, g in enumerate(gaps_to_show):
-                text = (g.get("text") or "").strip()
-                if not text:
-                    continue
-                snippet = text[:280] + ("…" if len(text) > 280 else "")
-                sim = g.get("similarity_pct")
-                kicker = str(g.get("section") or "General")
-                if sim is not None:
-                    kicker = f"{kicker} · {sim:g}% match"
-                with cols[i % 2]:
-                    info_card(
-                        kicker=kicker,
-                        title=f"Gap #{i + 1}",
-                        body=snippet,
-                        delay=(i % 2) * 0.08 + (i // 2) * 0.12,
-                    )
-                if i % 2 == 1:
-                    st.markdown('<div style="height:0.25rem"></div>', unsafe_allow_html=True)
+        section_header("Extracted Research Limitations & Future Scope", icon_name="compass_gap")
+        gaps_to_show = extracted_gaps[:12]
+        cols = st.columns(2)
+        for i, g in enumerate(gaps_to_show):
+            text = (g.get("text") or "").strip()
+            if not text:
+                continue
+            snippet = text[:280] + ("…" if len(text) > 280 else "")
+            sim = g.get("similarity_pct")
+            sec_name = str(g.get("section") or "General")
+            src_doc = str(g.get("source_file") or "Archive Report")
+            kicker = f"{sec_name} · {src_doc[:25]}"
+            if sim is not None:
+                kicker = f"{kicker} ({sim:g}%)"
 
-            if len(extracted_gaps) > 12:
-                st.caption(f"Showing 12 of {len(extracted_gaps)} extracted gaps — narrow your topic or increase depth for more.")
+            with cols[i % 2]:
+                info_card(
+                    kicker=kicker,
+                    title=f"Gap #{i + 1}",
+                    body=snippet,
+                    delay=(i % 2) * 0.08 + (i // 2) * 0.12,
+                )
+                with st.expander(f"Inspect Gap #{i + 1} Context · {src_doc}"):
+                    st.markdown(f"**Section:** {sec_name}")
+                    st.markdown(f"**Source File:** `{src_doc}`")
+                    if g.get("matched_indicators"):
+                        st.markdown(f"**Identified Keywords:** `{', '.join(g['matched_indicators'])}`")
+                    st.markdown(f"**Complete Passage:**\n> {text}")
 
-    # =========================================================
-    # Module 4: Quality Scorer — CYAN / BLUE (Blueprint identity)
+            if i % 2 == 1:
+                st.markdown('<div style="height:0.25rem"></div>', unsafe_allow_html=True)
+
+        if len(extracted_gaps) > 12:
+            st.caption(f"Showing 12 of {len(extracted_gaps)} extracted gaps — narrow your topic or increase depth for more.")
+
     # =========================================================
     elif student_nav == "Project Quality Scorer":
         set_module_theme("quality")

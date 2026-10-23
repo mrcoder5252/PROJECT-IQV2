@@ -85,8 +85,8 @@ class Config:
     top_k_retrieval: int = 5
     # Cosine-similarity cut-offs. NOT yet calibrated on labelled duplicate pairs:
     # treat them as tunable defaults and override via env until you have labels.
-    duplicate_threshold: float = field(default_factory=lambda: _env_float("DUPLICATE_THRESHOLD", 0.82))
-    moderate_threshold: float = field(default_factory=lambda: _env_float("MODERATE_THRESHOLD", 0.65))
+    duplicate_threshold: float = field(default_factory=lambda: _env_float("DUPLICATE_THRESHOLD", 0.70))
+    moderate_threshold: float = field(default_factory=lambda: _env_float("MODERATE_THRESHOLD", 0.45))
     min_relevance: float = field(default_factory=lambda: _env_float("MIN_RELEVANCE", 0.20))
 
     # --- secrets (live, never frozen at import) ------------------------------
