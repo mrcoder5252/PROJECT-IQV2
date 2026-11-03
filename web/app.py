@@ -220,16 +220,36 @@ html, body, [class*="css"] {
     color: var(--txt) !important;
 }
 
-[data-testid="stHeader"] {
-    background: transparent !important;
+/* ---------- Complete Removal of Streamlit Branding, Deploy Button & Menus ---------- */
+[data-testid="stDecoration"],
+header::before,
+header::after {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
 }
 
-/* Completely remove Deploy button from top right corner */
+[data-testid="stHeader"] {
+    background: transparent !important;
+    color: transparent !important;
+}
+
+/* Completely remove Deploy button & developer actions from top right corner */
+[data-testid="stAppDeployButton"],
+.stAppDeployButton,
 [data-testid="stDeployButton"],
 .stDeployButton,
-div[data-testid="stToolbar"] > button:first-child,
-div[data-testid="stHeaderActionElements"] > button:first-child,
-header [data-testid="stToolbarAction"] {
+[data-testid="stToolbar"],
+[data-testid="stToolbarActions"],
+[data-testid="stHeaderActionElements"],
+[data-testid="stMainMenu"],
+#MainMenu,
+[data-testid="stStatusWidget"],
+header [data-testid="stToolbarAction"],
+header div:has(> [data-testid="stAppDeployButton"]),
+footer,
+.stFooter,
+div[data-testid="stCustomComponentV1"]:has(iframe) {
     display: none !important;
     visibility: hidden !important;
     width: 0 !important;
@@ -802,6 +822,63 @@ code, pre, .stCodeBlock {
 }
 </style>
 """, unsafe_allow_html=True)
+
+# Active DOM Scrubber to eradicate Deploy button and developer chrome from parent window
+components.html(
+    """
+    <script>
+    const cleanStreamlitChrome = () => {
+        try {
+            const parentDoc = window.parent.document;
+            if (!parentDoc) return;
+            
+            const selectors = [
+                '[data-testid="stAppDeployButton"]',
+                '.stAppDeployButton',
+                '[data-testid="stDeployButton"]',
+                '.stDeployButton',
+                '[data-testid="stToolbar"]',
+                '[data-testid="stToolbarActions"]',
+                '[data-testid="stHeaderActionElements"]',
+                '#MainMenu',
+                '[data-testid="stMainMenu"]',
+                '[data-testid="stDecoration"]',
+                '[data-testid="stStatusWidget"]',
+                'footer'
+            ];
+            
+            selectors.forEach(sel => {
+                parentDoc.querySelectorAll(sel).forEach(el => {
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('visibility', 'hidden', 'important');
+                    el.remove();
+                });
+            });
+
+            const header = parentDoc.querySelector('header');
+            if (header) {
+                header.querySelectorAll('button').forEach(btn => {
+                    const txt = (btn.textContent || btn.innerText || '').toLowerCase();
+                    if (txt.includes('deploy')) {
+                        btn.style.setProperty('display', 'none', 'important');
+                        btn.remove();
+                    }
+                });
+            }
+        } catch (e) {}
+    };
+
+    cleanStreamlitChrome();
+    setInterval(cleanStreamlitChrome, 200);
+    try {
+        const observer = new MutationObserver(cleanStreamlitChrome);
+        observer.observe(window.parent.document.body, { childList: true, subtree: true });
+    } catch(e) {}
+    </script>
+    """,
+    height=0,
+    width=0,
+)
 
 
 
