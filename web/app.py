@@ -1925,36 +1925,154 @@ else:
                 icon_name="database_sync",
                 title="Data Ingestion & Multi-Format Processing Center",
                 subtitle="Upload new project documents, organize into institutional hierarchy, and trigger vector pipeline indexing.",
-                badges=[("Multi-Format Parser", "meta-pill-blue")],
+                badges=[("Multi-Format Parser", "meta-pill-blue"), ("ChromaDB Indexing", "meta-pill-green")],
                 eyebrow="Admin Center · Ingestion & Processing"
             )
 
-            section_header("Upload Academic Project Files", icon_name="database_sync")
-            st.caption("Supported formats: .pdf (Blackbooks), .pptx (Presentations), .docx (Synopses, Research Papers).")
-
+            section_header("Step 1: Document Assignment & Metadata", icon_name="file_text")
             col_d1, col_d2 = st.columns(2)
             with col_d1:
                 target_dept = st.selectbox("Assign to Department", ["CS_1", "CS_2", "DS_1", "DS_2", "General"])
                 target_group = st.text_input("Assign to Group ID", "Group 14")
             with col_d2:
-                target_category = st.selectbox("Document Category", ["Black Book", "Review 4", "synopsis", "Research Paper", "Abstract"])
+                target_category = st.selectbox("Document Category", ["Black Book", "Review 4", "Synopsis", "Research Paper", "Abstract"])
+                auto_index = st.checkbox(
+                    "Auto-index into ChromaDB vector store upon submission",
+                    value=True,
+                    help="Extracts text, redacts PII, generates embeddings, and indexes into ChromaDB immediately."
+                )
+
+            section_header("Step 2: Attach Project Documents", icon_name="database_sync")
+            st.caption("Supported formats: .pdf (Blackbooks), .pptx (Presentations), .docx (Synopses, Research Papers).")
 
             uploaded_files = st.file_uploader(
-                "Choose files to ingest into repository",
+                "Choose or drag & drop files to ingest into repository",
                 type=["pdf", "pptx", "docx", "doc"],
-                accept_multiple_files=True
+                accept_multiple_files=True,
+                key="admin_file_uploader"
             )
 
+            # Staged files preview table
             if uploaded_files:
-                clean_group = re.sub(r'[^a-zA-Z0-9_\s-]', '', target_group).strip() or "Group_14"
-                upload_dest = config.raw_dir / target_dept / clean_group / target_category
-                upload_dest.mkdir(parents=True, exist_ok=True)
+                st.markdown(
+                    f'<div class="piq-card fade-up" style="border-left: 3px solid #6366F1; margin: 1.2rem 0 0.8rem 0;">'
+                    f'<div class="card-kicker">Staged for Submission · {len(uploaded_files)} file(s) selected</div>'
+                    f'<div class="card-body">Target Folder: <code>data/raw/{target_dept}/{target_group}/{target_category}/</code></div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                preview_list = []
                 for f in uploaded_files:
-                    clean_filename = Path(f.name).name
-                    save_path = upload_dest / clean_filename
-                    save_path.write_bytes(f.getvalue())
-                    st.success(f"Saved: `{clean_filename}` to `{save_path}`")
-                st.info("Files successfully staged. Execute `python run_pipeline.py` to index new records into ChromaDB.")
+                    size_kb = round(len(f.getvalue()) / 1024, 1)
+                    preview_list.append({
+                        "File Name": f.name,
+                        "Format": Path(f.name).suffix.upper(),
+                        "File Size": f"{size_kb} KB",
+                        "Department": target_dept,
+                        "Group": target_group,
+                        "Category": target_category
+                    })
+                st.dataframe(pd.DataFrame(preview_list), use_container_width=True, hide_index=True)
+
+            section_header("Step 3: Submit & Process", icon_name="check_circle")
+            col_submit_btn, col_pipeline_btn = st.columns([1, 1], gap="medium")
+            with col_submit_btn:
+                submit_clicked = st.button("📥 Submit & Ingest Attached Files", type="primary", use_container_width=True)
+            with col_pipeline_btn:
+                reindex_clicked = st.button("⚡ Run Full Vector Pipeline on All Staged Data", type="secondary", use_container_width=True)
+
+            if submit_clicked:
+                if not uploaded_files:
+                    st.warning("⚠️ No files selected. Please attach or select one or more project documents (.pdf, .docx, .pptx) above before submitting.")
+                else:
+                    clean_group = re.sub(r'[^a-zA-Z0-9_\s-]', '', target_group).strip() or "Group_14"
+                    upload_dest = config.raw_dir / target_dept / clean_group / target_category
+                    upload_dest.mkdir(parents=True, exist_ok=True)
+                    saved_count = 0
+                    saved_names = []
+                    for f in uploaded_files:
+                        clean_filename = Path(f.name).name
+                        save_path = upload_dest / clean_filename
+                        save_path.write_bytes(f.getvalue())
+                        saved_count += 1
+                        saved_names.append(clean_filename)
+
+                    st.success(
+                        f"✅ Successfully submitted and saved {saved_count} file(s) to repository destination:\n\n"
+                        f"`{upload_dest}`\n\n" + "\n".join([f"- **`{name}`**" for name in saved_names])
+                    )
+
+                    if auto_index:
+                        with st.spinner("Processing & indexing newly submitted documents into ChromaDB..."):
+                            from run_pipeline import run_full_pipeline
+                            try:
+                                summary = run_full_pipeline(
+                                    raw_dir=config.raw_dir,
+                                    extracted_dir=config.extracted_dir,
+                                    cleaned_dir=config.cleaned_dir,
+                                    chunks_file=config.chunks_file,
+                                    chroma_dir=config.chroma_dir,
+                                    reports_dir=config.reports_dir,
+                                    reset=False,
+                                    assume_yes=True,
+                                )
+                                st.success(f"🚀 Pipeline Complete! Active indexed chunks in ChromaDB: **{summary.get('indexed_chunks', 0):,}**")
+                                st.session_state["db_count"] = summary.get("indexed_chunks", 0)
+                            except Exception as e:
+                                st.error(f"Pipeline indexing error: {e}")
+                    else:
+                        st.info("ℹ️ Files are safely staged in `data/raw`. Click 'Run Full Vector Pipeline on All Staged Data' to index them into ChromaDB.")
+
+            if reindex_clicked:
+                with st.spinner("Executing end-to-end extraction, privacy sanitization, chunking, and ChromaDB indexing..."):
+                    from run_pipeline import run_full_pipeline
+                    try:
+                        summary = run_full_pipeline(
+                            raw_dir=config.raw_dir,
+                            extracted_dir=config.extracted_dir,
+                            cleaned_dir=config.cleaned_dir,
+                            chunks_file=config.chunks_file,
+                            chroma_dir=config.chroma_dir,
+                            reports_dir=config.reports_dir,
+                            reset=False,
+                            assume_yes=True,
+                        )
+                        st.success(
+                            f"🎉 Full Vector Pipeline Execution Complete!\n\n"
+                            f"- **Extracted Files:** {summary.get('extracted_files', 0)}\n"
+                            f"- **Cleaned Documents:** {summary.get('cleaned_docs', 0)}\n"
+                            f"- **Total Chunks Produced:** {summary.get('total_chunks', 0):,}\n"
+                            f"- **Active ChromaDB Chunks:** {summary.get('indexed_chunks', 0):,}\n"
+                            f"- **Total Processing Time:** {summary.get('total_time_seconds', 0)}s"
+                        )
+                        st.session_state["db_count"] = summary.get("indexed_chunks", 0)
+                    except Exception as e:
+                        st.error(f"Pipeline execution error: {e}")
+
+            # Repository Raw Files Explorer
+            st.markdown('<hr class="divider-glow">', unsafe_allow_html=True)
+            section_header("Corpus Raw Document Repository", icon_name="database")
+            raw_files = [f for f in config.raw_dir.rglob("*.*") if f.name != ".gitkeep"]
+            if raw_files:
+                raw_summary = []
+                for f in raw_files:
+                    rel = f.relative_to(config.raw_dir)
+                    parts = rel.parts
+                    dept = parts[0] if len(parts) > 1 else "Root"
+                    grp = parts[1] if len(parts) > 2 else "-"
+                    cat = parts[2] if len(parts) > 3 else "-"
+                    size_kb = round(f.stat().st_size / 1024, 1)
+                    raw_summary.append({
+                        "File Name": f.name,
+                        "Department": dept,
+                        "Group": grp,
+                        "Category": cat,
+                        "Size (KB)": size_kb,
+                        "Relative Path": str(rel)
+                    })
+                st.dataframe(pd.DataFrame(raw_summary), use_container_width=True, hide_index=True)
+            else:
+                st.caption("No documents currently staged in data/raw. Use the uploader above to submit documents.")
 
         # ---------------------------------------------------------
         # Admin Module 2: Privacy Sanitization Audit Log
