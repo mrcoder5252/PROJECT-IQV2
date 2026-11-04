@@ -1566,7 +1566,7 @@ if portal_mode == "Student Workspace":
             eyebrow="Module 03 · Discovery Optics"
         )
 
-        col_search, col_cfg1, col_cfg2 = st.columns([3, 2, 1], gap="large")
+        col_search, col_stat = st.columns([3, 1], gap="large")
         with col_search:
             section_header("Search Domain or Topic", icon_name="search")
             gap_topic = st.text_input(
@@ -1574,11 +1574,7 @@ if portal_mode == "Student Workspace":
                 placeholder="e.g. IoT in agriculture, blockchain security, plant disease detection",
                 help="Type a topic, technology or problem area — gaps are mined from reports most similar to your query."
             )
-        with col_cfg1:
-            section_header("Extraction Depth Parameters", icon_name="gauge_score")
-            top_k = st.slider("Max gaps per report section", 3, 25, 10,
-                              help="Higher values retrieve more limitation statements per report section.")
-        with col_cfg2:
+        with col_stat:
             section_header("Corpus Snapshot", icon_name="bar_chart")
             stat_card(f"{db_count:,}", "Indexed Passages", 0.0)
 
@@ -1629,7 +1625,7 @@ if portal_mode == "Student Workspace":
                                 "full_text": r.get("text") or ""
                             })
                 else:
-                    extracted_gaps = gap_analyzer.extract_project_gaps(top_k_per_section=top_k)
+                    extracted_gaps = gap_analyzer.extract_project_gaps(top_k_per_section=10)
 
                 st.session_state["mined_gaps"] = extracted_gaps
                 st.session_state["mined_topic"] = topic
