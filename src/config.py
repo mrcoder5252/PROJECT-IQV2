@@ -15,14 +15,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
 try:
     from dotenv import load_dotenv
 
+    if (ROOT_DIR / ".env").exists():
+        load_dotenv(ROOT_DIR / ".env")
     load_dotenv()
 except ImportError:  # python-dotenv is optional
     pass
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
 _PREFIXES = ("PROJECTIQ_", "PROJECT_IQ_")
 
 

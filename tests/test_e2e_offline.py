@@ -36,6 +36,8 @@ def _make_raw(root: Path):
 def test_full_flow(tmp_path, offline, monkeypatch):
     from src.config import config
     monkeypatch.setattr(config, "min_relevance", 0.0)  # toy hash-embeddings score lower than MiniLM
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr(config, "_gemini_override", "")
     raw, ext, cln = tmp_path / "raw", tmp_path / "ext", tmp_path / "cln"
     _make_raw(raw)
 
